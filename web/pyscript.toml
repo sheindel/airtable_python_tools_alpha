@@ -1,0 +1,7 @@
+name = "Airtable Mermaid Schema Grapher"
+version = "0.1.0"
+description = "Generate a Mermaid schema graph from an Airtable base"
+
+[files]
+"./airtable_mermaid_generator.py" = ""
+"./at_types.py" = ""

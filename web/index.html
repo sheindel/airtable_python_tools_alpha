@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airtable Mermaid Flowchart Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.0.4/pako.min.js"></script>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2025.2.3/core.css">
+    <script type="module" src="https://pyscript.net/releases/2025.2.3/core.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/js-base64/3.7.2/base64.min.js"></script> -->
+    <script type="py" src="./main.py" config="./pyscript.toml"></script>
+
+    <!-- for splashscreen -->
+    <style>
+        #loading { outline: none; border: none; background: transparent }
+    </style>
+    <script type="module">
+        const loading = document.getElementById('loading');
+        addEventListener('py:ready', () => loading.close());
+        loading.showModal();
+    </script>
+
+    <script type="module">
+        import mermaid from "https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.4.0/mermaid.esm.min.mjs";
+        import { Base64 } from 'https://cdn.jsdelivr.net/npm/js-base64@3.7.7/base64.mjs';
+        window.mermaid = mermaid;
+
+        window.Base64 = Base64;
+        mermaid.initialize({ 
+            startOnLoad: false,
+            maxTextSize: 150000,
+        });
+    </script>
+    <script src="script.js" type="module"></script>
+</head>
+<body class="p-6 bg-gray-100 font-sans">
+    <dialog id="loading">
+        <h1>Loading...</h1>
+    </dialog>
+
+    <div class="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-md">
+        <h1 class="text-2xl font-bold mb-4">Airtable Mermaid Flowchart Generator</h1>
+        <label class="block mb-2" for="base-id">AirTable Base ID:</label>
+        <input class="w-full p-2 mb-4 border rounded" type="text" id="base-id" placeholder="Enter Base ID" />
+
+        <label class="block mb-2" for="pat">AirTable PAT:</label>
+        <input class="w-full p-2 mb-4 border rounded" type="password" id="pat" placeholder="Enter PAT" />
+
+        <label class="block mb-2" for="max-depth">Max Depth:</label>
+        <input class="w-full p-2 mb-4 border rounded" type="number" id="max-depth" placeholder="Enter Max Depth" />
+
+        <label class="block mb-2" for="flowchart-type">Flowchart Type:</label>
+        <select class="w-full p-2 mb-4 border rounded" id="flowchart-type">
+            <option value="TD">Top Down</option>
+            <option value="LR">Left to Right</option>
+            <option value="RL">Right to Left</option>
+            <option value="BT">Bottom to Top</option>
+        </select>
+
+        <button class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600" onclick="fetchSchema()">Refresh Schema</button>
+
+        <p class="mt-4 text-gray-600" id="last-refresh">Last Refresh: Not yet retrieved</p>
+
+        <label class="block mt-4" for="table-dropdown">Select Table:</label>
+        <select class="w-full p-2 border rounded" id="table-dropdown" onchange="updateFieldDropdown()">
+            <option value="">-- No Tables Available --</option>
+        </select>
+
+        <label class="block mt-4" for="field-dropdown">Select Field:</label>
+        <select class="w-full p-2 border rounded" id="field-dropdown">
+            <option value="">-- No Fields Available --</option>
+        </select>
+
+        <div class="mt-6 p-4 bg-gray-200 rounded-lg" id="mermaid-container"></div>
+        <div class="flex mt-4 gap-2">
+            <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600" onclick="downloadMermaidSVG()">Download SVG</button>
+            <button class="bg-purple-500 text-white py-2 px-4 rounded hover:bg-purple-600" onclick="openInMermaidLive()">Open in Mermaid Live</button>
+            <button class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600" onclick="toggleFullscreen()">Fullscreen</button>
+            <button class="bg-yellow-500 text-white py-2 px-4 rounded hover:bg-yellow-600" onclick="downloadMermaidText()">Download Mermaid Text</button>
+        </div>
+    </div>
+</body>
+</html>
