@@ -27,7 +27,6 @@ def get_local_storage_metadata():
 table_dropdown = document.getElementById("table-dropdown")
 field_dropdown = document.getElementById("field-dropdown")
 flowchart_type_dropdown = document.getElementById("flowchart-type")
-max_depth_input = document.getElementById("max-depth")
 
 def update_mermaid_graph(
     table_name: str,
@@ -55,13 +54,10 @@ def parametersChanged(event):
     table = table_dropdown.selectedOptions[0].text
     field_name = field_dropdown.selectedOptions[0].text
     direction = flowchart_type_dropdown.selectedOptions[0].value
-    max_depth = max_depth_input.value
-    print(type(max_depth))
-    print(f"Table: {table}, Field: {field_name}, Direction: {direction}, Max Depth: {max_depth}")
+    print(f"Table: {table}, Field: {field_name}, Direction: {direction}")
 
     update_mermaid_graph(table, field_name, direction)
 
 
 add_event_listener(field_dropdown, "change", parametersChanged)
 add_event_listener(flowchart_type_dropdown, "change", parametersChanged)
-add_event_listener(max_depth_input, "change", parametersChanged)

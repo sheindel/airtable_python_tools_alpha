@@ -1,6 +1,8 @@
 from enum import Enum
 import re
 from typing import TypedDict
+import sys
+sys.path.append("web")
 from at_types import AirTableFieldMetadata, AirtableMetadata, TableMetadata
 
 INDENT = "    "
@@ -33,8 +35,7 @@ def field_metadata_to_mermaid_node(
             inverse_id = field["options"].get("inverseLinkFieldId", "")
             if inverse_id:
                 edges.append(f"{field_id} <--> {inverse_id}")
-            else:
-                edges.append(f"{table_id} --> {field_id}")
+            edges.append(f"{table_id} --> {field_id}")
         case "singleSelect":
             icon = "→"
         case "singleLineText" | "multilineText" | "richText":
@@ -114,7 +115,6 @@ def airtable_schema_to_mermaid(
     table_name: str = "",
     full_field_description: bool = False,
     direction: str = "TD",
-    max_depth: int = 10,
     verbose: bool = False,
 ):
     id_filter: list[str] = []
@@ -136,7 +136,6 @@ def airtable_schema_to_mermaid(
         id_filter = find_all_related_fields_by_id_(
             field, 
             airtable_metadata, 
-            max_depth, 
             verbose
         )
 
@@ -221,7 +220,6 @@ def get_field_metadata_by_id(field_id: str, metadata: AirtableMetadata):
 def find_all_related_fields_by_id_(
         field_id: str, 
         airtable_metadata: AirtableMetadata,
-        max_depth: int = 10,
         verbose: bool = False
 )-> list[str]:
     field = get_field_metadata_by_id(field_id, airtable_metadata)
@@ -230,9 +228,11 @@ def find_all_related_fields_by_id_(
         return []
     
     result: list[str] = []
-    result.extend(get_related_fields(airtable_metadata, field, max_depth=max_depth))
+    visited_fields: set[str] = set()
+    result.extend(get_related_fields(airtable_metadata, field, visited_fields))
     if verbose:
         print(f'Related Fields: {result}')
+        print(f'Visited Fields: {visited_fields}')
     
     return result
 
@@ -241,7 +241,6 @@ def get_related_fields(
         airtable_metadata: AirtableMetadata, 
         field_metadata: AirTableFieldMetadata, 
         visited_fields: set[str] = set(),
-        max_depth = 10,
         depth = 0,
 ):
     def print_debug(x): print(f"{depth * INDENT}{x}")
@@ -249,10 +248,6 @@ def get_related_fields(
     next_fields_to_search: list[str] = []
 
     print_debug(f'Exploring {field_metadata["id"]} {field_metadata["type"]} {field_metadata["name"]}')
-    
-    # if depth > max_depth:
-    #     print_debug(f"Max depth reached {depth}")
-    #     return []
     
     if field_metadata["id"] in visited_fields:
         print_debug(f"Already visited {field_metadata['id']}")
@@ -269,7 +264,12 @@ def get_related_fields(
         case "formula":
             next_fields_to_search = field_metadata["options"]["referencedFieldIds"]
         case "multipleRecordLinks":
-            next_fields_to_search = [field_metadata["options"]["inverseLinkFieldId"]]
+            # TODO for some reason, sometimes the inverse link field is not present
+            inverse_field = field_metadata["options"].get("inverseLinkFieldId", "")
+            if inverse_field:
+                next_fields_to_search = [inverse_field]
+            else:
+                next_fields_to_search = [field_metadata["options"]["linkedTableId"]]
         case "rollup":
             next_fields_to_search = [field_metadata["options"]["fieldIdInLinkedTable"]]
         case _:
@@ -289,8 +289,7 @@ def get_related_fields(
                     airtable_metadata, 
                     field, 
                     visited_fields, 
-                    depth + 1,
-                    max_depth
+                    depth + 1
                 )
             )
     

@@ -20,11 +20,20 @@ def run_web():
     class Server(http.server.SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, directory="web", **kwargs)
+        
+        def end_headers(self):
+            self.send_my_headers()
+            http.server.SimpleHTTPRequestHandler.end_headers(self)
 
-    PORT = 8003
+        def send_my_headers(self):
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
+
+    PORT = 8008
 
     with socketserver.TCPServer(("", PORT), Server) as httpd:
-        print("serving at port", PORT)
+        print(f"Running server at http://localhost:{PORT}")
         httpd.serve_forever()
 
 
@@ -89,10 +98,12 @@ def generate_mermaid_graph(
     table_name: str = "",
     field_name: str = "",
     flowchart_type: str = "TD",
-    max_depth: int = 300,
     verbose: bool = False
 ):
     print("Generating Mermaid Graph")
+
+    from rich.traceback import install
+    install(show_locals=False)
 
     airtable_metadata = get_airtable_metadata(verbose=verbose)
 
@@ -101,7 +112,6 @@ def generate_mermaid_graph(
         field=field_name, 
         table_name=table_name, 
         direction=flowchart_type,
-        max_depth=max_depth,
         verbose=verbose
     )
     

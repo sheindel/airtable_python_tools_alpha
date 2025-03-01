@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,12 +14,54 @@
 
     <!-- for splashscreen -->
     <style>
-        #loading { outline: none; border: none; background: transparent }
+        #loading {
+            outline: none;
+            border: none;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            margin-left: 10px;
+            font-size: 1.5rem;
+            color: #3498db;
+        }
     </style>
     <script type="module">
+        console.log('Hello from PyScript!');
         const loading = document.getElementById('loading');
-        addEventListener('py:ready', () => loading.close());
-        loading.showModal();
+        addEventListener('py:ready', () => {
+            console.log('PyScript is ready!');
+            loading.style.display = 'none';
+        });
+        loading.style.display = 'flex';
     </script>
 
     <script type="module">
@@ -27,28 +70,27 @@
         window.mermaid = mermaid;
 
         window.Base64 = Base64;
-        mermaid.initialize({ 
+        mermaid.initialize({
             startOnLoad: false,
             maxTextSize: 150000,
         });
     </script>
     <script src="script.js" type="module"></script>
 </head>
-<body class="p-6 bg-gray-100 font-sans">
-    <dialog id="loading">
-        <h1>Loading...</h1>
-    </dialog>
 
-    <div class="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-md">
+<body class="p-6 bg-gray-100 font-sans">
+    <div id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading...</div>
+    </div>
+
+    <div class="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-md">
         <h1 class="text-2xl font-bold mb-4">Airtable Mermaid Flowchart Generator</h1>
         <label class="block mb-2" for="base-id">AirTable Base ID:</label>
         <input class="w-full p-2 mb-4 border rounded" type="text" id="base-id" placeholder="Enter Base ID" />
 
         <label class="block mb-2" for="pat">AirTable PAT:</label>
         <input class="w-full p-2 mb-4 border rounded" type="password" id="pat" placeholder="Enter PAT" />
-
-        <label class="block mb-2" for="max-depth">Max Depth:</label>
-        <input class="w-full p-2 mb-4 border rounded" type="number" id="max-depth" placeholder="Enter Max Depth" />
 
         <label class="block mb-2" for="flowchart-type">Flowchart Type:</label>
         <select class="w-full p-2 mb-4 border rounded" id="flowchart-type">
@@ -58,7 +100,8 @@
             <option value="BT">Bottom to Top</option>
         </select>
 
-        <button class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600" onclick="fetchSchema()">Refresh Schema</button>
+        <button class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600" onclick="fetchSchema()">Refresh
+            Schema</button>
 
         <p class="mt-4 text-gray-600" id="last-refresh">Last Refresh: Not yet retrieved</p>
 
@@ -74,11 +117,19 @@
 
         <div class="mt-6 p-4 bg-gray-200 rounded-lg" id="mermaid-container"></div>
         <div class="flex mt-4 gap-2">
-            <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600" onclick="downloadMermaidSVG()">Download SVG</button>
-            <button class="bg-purple-500 text-white py-2 px-4 rounded hover:bg-purple-600" onclick="openInMermaidLive()">Open in Mermaid Live</button>
-            <button class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600" onclick="toggleFullscreen()">Fullscreen</button>
-            <button class="bg-yellow-500 text-white py-2 px-4 rounded hover:bg-yellow-600" onclick="downloadMermaidText()">Download Mermaid Text</button>
+            <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600"
+                onclick="downloadMermaidSVG()">Download SVG</button>
+            <button class="bg-purple-500 text-white py-2 px-4 rounded hover:bg-purple-600"
+                onclick="openInMermaidLive()">Open in Mermaid Live</button>
+            <!-- copy mermaid graph definition to clipboard -->
+            <button class="bg-indigo-500 text-white py-2 px-4 rounded hover:bg-indigo-600"
+                onclick="copyMermaidText()">Copy Mermaid Graph Definition</button>
+            <button class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+                onclick="toggleFullscreen()">Fullscreen</button>
+            <button class="bg-yellow-500 text-white py-2 px-4 rounded hover:bg-yellow-600"
+                onclick="downloadMermaidText()">Download Mermaid Text</button>
         </div>
     </div>
 </body>
+
 </html>
