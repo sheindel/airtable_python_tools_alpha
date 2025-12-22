@@ -38,7 +38,6 @@ def switch_tab(tab_name: str):
     """
     global current_tab
     current_tab = tab_name
-    print(f"Switched to tab: {tab_name}")
 
 
 # Export tab switching function to JavaScript

@@ -15,6 +15,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const compressorTableList = document.getElementById("compressor-table-dropdown-list");
         const compressorFieldDropdown = document.getElementById("compressor-field-dropdown");
         const compressorFieldList = document.getElementById("compressor-field-dropdown-list");
+        const analysisTableDropdown = document.getElementById("analysis-table-dropdown");
+        const analysisTableList = document.getElementById("analysis-table-dropdown-list");
         
         // Close table dropdown if click is outside
         if (!tableDropdown.contains(event.target) && !tableList.contains(event.target)) {
@@ -38,6 +40,32 @@ document.addEventListener("DOMContentLoaded", () => {
             !compressorFieldDropdown.contains(event.target) && 
             !compressorFieldList.contains(event.target)) {
             compressorFieldList.classList.add("hidden");
+        }
+        
+        // Close analysis table dropdown if click is outside
+        if (analysisTableDropdown && analysisTableList && 
+            !analysisTableDropdown.contains(event.target) && 
+            !analysisTableList.contains(event.target)) {
+            analysisTableList.classList.add("hidden");
+        }
+        
+        // Close grapher table dropdown if click is outside
+        const grapherTableDropdown = document.getElementById("grapher-table-dropdown");
+        const grapherTableList = document.getElementById("grapher-table-dropdown-list");
+        const grapherFieldDropdown = document.getElementById("grapher-field-dropdown");
+        const grapherFieldList = document.getElementById("grapher-field-dropdown-list");
+        
+        if (grapherTableDropdown && grapherTableList && 
+            !grapherTableDropdown.contains(event.target) && 
+            !grapherTableList.contains(event.target)) {
+            grapherTableList.classList.add("hidden");
+        }
+        
+        // Close grapher field dropdown if click is outside
+        if (grapherFieldDropdown && grapherFieldList && 
+            !grapherFieldDropdown.contains(event.target) && 
+            !grapherFieldList.contains(event.target)) {
+            grapherFieldList.classList.add("hidden");
         }
     });
 });
@@ -63,7 +91,11 @@ let tableOptions = [];
 let fieldOptions = [];
 let compressorTableOptions = [];
 let compressorFieldOptions = [];
+let analysisTableOptions = [];
+let grapherTableOptions = [];
+let grapherFieldOptions = [];
 let originalFormulaText = ""; // Store original formula with field IDs
+let lastAnalysisCSV = ""; // Store CSV data for download
 
 // Dark mode functionality
 function initializeDarkMode() {
@@ -475,6 +507,11 @@ function filterCompressorTableDropdown() {
             input.value = option.text;
             list.classList.add("hidden");
             updateCompressorFieldDropdown(option.id);
+            // Enable the Table Report button when a table is selected
+            const tableReportBtn = document.getElementById("table-report-btn");
+            if (tableReportBtn) {
+                tableReportBtn.disabled = false;
+            }
         };
         list.appendChild(div);
     });
@@ -550,7 +587,6 @@ function updateCompressorFieldDropdown(tableId) {
     // Clear displays
     document.getElementById("original-formula-display").innerHTML = '<span class="text-gray-500 dark:text-gray-400 italic">No formula selected</span>';
     document.getElementById("compressed-formula-display").innerHTML = '<span class="text-gray-500 dark:text-gray-400 italic">Select a formula field to see compressed results</span>';
-    document.getElementById("copy-compressed-btn").disabled = true;
 }
 
 function updateOriginalFormulaDisplay(tableId, fieldId, formula) {
@@ -770,6 +806,387 @@ function initializeCompressorDropdowns() {
         // Sort tables alphabetically
         compressorTableOptions.sort((a, b) => a.text.localeCompare(b.text));
     }
+    
+    // Also initialize analysis table options
+    initializeAnalysisDropdowns();
+    
+    // Also initialize grapher table options
+    initializeGrapherDropdowns();
+}
+
+// Table Analysis functions
+function initializeAnalysisDropdowns() {
+    const schemaData = JSON.parse(localStorage.getItem("airtableSchema"));
+    
+    analysisTableOptions = [];
+
+    if (schemaData?.schema?.tables) {
+        schemaData.schema.tables.forEach(table => {
+            const option = {
+                id: table.id,
+                text: table.name
+            };
+            analysisTableOptions.push(option);
+        });
+        
+        // Sort tables alphabetically
+        analysisTableOptions.sort((a, b) => a.text.localeCompare(b.text));
+    }
+}
+
+function filterAnalysisTableDropdown() {
+    const input = document.getElementById("analysis-table-dropdown");
+    const list = document.getElementById("analysis-table-dropdown-list");
+    const filter = input.value.toLowerCase();
+    list.innerHTML = "";
+    list.classList.remove("hidden");
+
+    const filteredOptions = analysisTableOptions.filter(option =>
+        option.text.toLowerCase().includes(filter)
+    );
+
+    filteredOptions.forEach(option => {
+        const div = document.createElement("div");
+        div.classList.add("p-2", "cursor-pointer", "hover:bg-gray-200", "dark:hover:bg-gray-600", "dark:text-white");
+        div.textContent = option.text;
+        div.onclick = () => {
+            input.value = option.text;
+            list.classList.add("hidden");
+            // Enable the generate button when a table is selected
+            const generateBtn = document.getElementById("generate-table-complexity-btn");
+            if (generateBtn) {
+                generateBtn.disabled = false;
+            }
+        };
+        list.appendChild(div);
+    });
+
+    if (filteredOptions.length === 0) {
+        const noResultsDiv = document.createElement("div");
+        noResultsDiv.classList.add("p-2", "text-gray-500", "dark:text-gray-400");
+        noResultsDiv.textContent = "No tables found";
+        list.appendChild(noResultsDiv);
+    }
+}
+
+function generateTableComplexityCSV() {
+    const tableInput = document.getElementById("analysis-table-dropdown");
+    const tableName = tableInput.value.trim();
+    
+    if (!tableName) {
+        alert("Please select a table.");
+        return;
+    }
+    
+    // Call Python function to generate CSV data
+    if (typeof window.getTableComplexityData !== 'undefined') {
+        try {
+            const csvData = window.getTableComplexityData(tableName);
+            
+            if (!csvData || csvData.length === 0) {
+                alert("No complexity data found for this table.");
+                return;
+            }
+            
+            // Store the CSV data
+            lastAnalysisCSV = csvData;
+            
+            // Display the CSV data
+            const csvOutput = document.getElementById("analysis-csv-output");
+            const resultsDiv = document.getElementById("analysis-results");
+            
+            // Convert array to CSV string for display
+            const csvString = csvData.map(row => row.join(",")).join("\n");
+            csvOutput.textContent = csvString;
+            
+            // Show results
+            resultsDiv.classList.remove("hidden");
+            
+        } catch (error) {
+            console.error("Error generating table complexity:", error);
+            alert(`Failed to generate table complexity: ${error.message || error}`);
+        }
+    } else {
+        alert("Table complexity analysis is not yet initialized. Please refresh the page.");
+    }
+}
+
+function downloadTableComplexityCSV() {
+    if (!lastAnalysisCSV || lastAnalysisCSV.length === 0) {
+        alert("No data to download");
+        return;
+    }
+    
+    const tableInput = document.getElementById("analysis-table-dropdown");
+    const tableName = tableInput.value.trim();
+    
+    // Convert array to CSV string
+    const csvString = lastAnalysisCSV.map(row => row.join(",")).join("\n");
+    
+    // Download the CSV
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    
+    // Create filename with table name
+    const filename = `${tableName}_field_complexity.csv`;
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Formula Grapher functions
+function initializeGrapherDropdowns() {
+    const schemaData = JSON.parse(localStorage.getItem("airtableSchema"));
+    
+    grapherTableOptions = [];
+    grapherFieldOptions = [];
+
+    if (schemaData?.schema?.tables) {
+        schemaData.schema.tables.forEach(table => {
+            const option = {
+                id: table.id,
+                text: table.name
+            };
+            grapherTableOptions.push(option);
+        });
+        
+        // Sort tables alphabetically
+        grapherTableOptions.sort((a, b) => a.text.localeCompare(b.text));
+    }
+}
+
+function filterGrapherTableDropdown() {
+    const input = document.getElementById("grapher-table-dropdown");
+    const list = document.getElementById("grapher-table-dropdown-list");
+    const filter = input.value.toLowerCase();
+    list.innerHTML = "";
+    list.classList.remove("hidden");
+
+    const filteredOptions = grapherTableOptions.filter(option =>
+        option.text.toLowerCase().includes(filter)
+    );
+
+    filteredOptions.forEach(option => {
+        const div = document.createElement("div");
+        div.classList.add("p-2", "cursor-pointer", "hover:bg-gray-200", "dark:hover:bg-gray-600", "dark:text-white");
+        div.textContent = option.text;
+        div.onclick = () => {
+            input.value = option.text;
+            list.classList.add("hidden");
+            updateGrapherFieldDropdown(option.id);
+        };
+        list.appendChild(div);
+    });
+
+    if (filteredOptions.length === 0) {
+        const noResultsDiv = document.createElement("div");
+        noResultsDiv.classList.add("p-2", "text-gray-500", "dark:text-gray-400");
+        noResultsDiv.textContent = "No tables found";
+        list.appendChild(noResultsDiv);
+    }
+}
+
+function filterGrapherFieldDropdown() {
+    const input = document.getElementById("grapher-field-dropdown");
+    const list = document.getElementById("grapher-field-dropdown-list");
+    const filter = input.value.toLowerCase();
+    list.innerHTML = "";
+    list.classList.remove("hidden");
+
+    const filteredOptions = grapherFieldOptions.filter(option =>
+        option.text.toLowerCase().includes(filter)
+    );
+
+    filteredOptions.forEach(option => {
+        const div = document.createElement("div");
+        div.classList.add("p-2", "cursor-pointer", "hover:bg-gray-200", "dark:hover:bg-gray-600", "dark:text-white");
+        div.textContent = option.text;
+        div.onclick = () => {
+            input.value = option.text;
+            list.classList.add("hidden");
+            onGrapherFieldSelected(option.tableName, option.text);
+        };
+        list.appendChild(div);
+    });
+
+    if (filteredOptions.length === 0) {
+        const noResultsDiv = document.createElement("div");
+        noResultsDiv.classList.add("p-2", "text-gray-500", "dark:text-gray-400");
+        noResultsDiv.textContent = "No formula fields found";
+        list.appendChild(noResultsDiv);
+    }
+}
+
+function updateGrapherFieldDropdown(tableId) {
+    const schemaData = JSON.parse(localStorage.getItem("airtableSchema"));
+    const fieldDropdown = document.getElementById("grapher-field-dropdown");
+    
+    // Clear the field input value
+    fieldDropdown.value = "";
+    
+    grapherFieldOptions = [];
+    
+    // Find table name
+    let tableName = "";
+
+    if (schemaData?.schema?.tables) {
+        const selectedTable = schemaData.schema.tables.find(table => table.id === tableId);
+        if (selectedTable) {
+            tableName = selectedTable.name;
+            selectedTable.fields.forEach(field => {
+                // Only include formula fields
+                if (field.type === "formula") {
+                    const option = {
+                        id: field.id,
+                        text: field.name,
+                        tableId: tableId,
+                        tableName: tableName,
+                        formula: field.options?.formula || ""
+                    };
+                    grapherFieldOptions.push(option);
+                }
+            });
+        }
+        
+        // Sort fields alphabetically
+        grapherFieldOptions.sort((a, b) => a.text.localeCompare(b.text));
+    }
+    
+    // Clear displays
+    document.getElementById("grapher-formula-display").innerHTML = '<span class="text-gray-500 dark:text-gray-400 italic">Select a formula field to see its formula</span>';
+    document.getElementById("formula-grapher-mermaid-container").innerHTML = '<span class="text-gray-500 dark:text-gray-400 italic">Select a formula field to generate flowchart</span>';
+}
+
+function onGrapherFieldSelected(tableName, fieldName) {
+    // Update formula display
+    if (typeof window.getFormulaForDisplay !== 'undefined') {
+        const formula = window.getFormulaForDisplay(tableName, fieldName);
+        const formulaDisplay = document.getElementById("grapher-formula-display");
+        if (formula) {
+            formulaDisplay.textContent = formula;
+        } else {
+            formulaDisplay.innerHTML = '<span class="text-gray-500 dark:text-gray-400 italic">No formula available</span>';
+        }
+    }
+    
+    // Auto-generate the flowchart
+    autoGenerateFormulaGraph();
+}
+
+function autoGenerateFormulaGraph() {
+    const tableInput = document.getElementById("grapher-table-dropdown");
+    const fieldInput = document.getElementById("grapher-field-dropdown");
+    
+    const tableName = tableInput ? tableInput.value.trim() : "";
+    const fieldName = fieldInput ? fieldInput.value.trim() : "";
+    
+    if (!tableName || !fieldName) {
+        return;
+    }
+    
+    // Get options
+    const expandCheckbox = document.getElementById("grapher-expand-fields");
+    const depthInput = document.getElementById("grapher-expansion-depth");
+    const directionDropdown = document.getElementById("grapher-flowchart-direction");
+    
+    const expandFields = expandCheckbox ? expandCheckbox.checked : false;
+    const direction = directionDropdown ? directionDropdown.value : "TD";
+    const depthValue = depthInput ? depthInput.value.trim() : "1";
+    const maxDepth = depthValue ? parseInt(depthValue) : 1;
+    
+    // Call Python function
+    if (typeof window.graphFormulaFromUI !== 'undefined') {
+        window.graphFormulaFromUI(tableName, fieldName, expandFields, maxDepth, direction);
+    }
+}
+
+function downloadFormulaGrapherSVG() {
+    const svgElement = document.querySelector("#formula-grapher-mermaid-container .mermaid svg");
+    if (!svgElement) return alert("No diagram available to download");
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(svgElement);
+    const blob = new Blob([svgString], { type: "image/svg+xml" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "formula_flowchart.svg";
+    link.click();
+}
+
+function openFormulaGrapherInMermaidLive() {
+    const graphDefinition = localStorage.getItem("lastFormulaGraphDefinition");
+    if (!graphDefinition) return alert("No diagram available to open in Mermaid Live");
+    
+    const state = {
+        code: graphDefinition,
+        mermaid: "{\n  \"theme\": \"default\"\n}",
+        autoSync: true,
+        rough: false,
+        updateDiagram: false,
+        panZoom: true,
+        pan: '',
+        zoom: '',
+        editorMode: "code"
+    }
+    const compressedGraph = pako.deflate(new TextEncoder().encode(JSON.stringify(state)), { level: 9 });
+    const encodedGraph = window.Base64.fromUint8Array(compressedGraph, true);
+    const mermaidLiveUrl = `https://mermaid.live/edit#pako:${encodedGraph}`;
+    window.open(mermaidLiveUrl, "_blank");
+}
+
+function copyFormulaGrapherMermaidText() {
+    const graphDefinition = localStorage.getItem("lastFormulaGraphDefinition");
+    if (!graphDefinition) return alert("No diagram available to copy");
+    navigator.clipboard.writeText(graphDefinition).then(() => {
+        alert("Mermaid diagram copied to clipboard");
+    }).catch(error => {
+        console.error("Error copying to clipboard:", error);
+        alert("Failed to copy Mermaid diagram to clipboard");
+    });
+}
+
+function toggleFormulaGrapherFullscreen() {
+    const mermaidContainer = document.getElementById("formula-grapher-mermaid-container");
+    if (!document.fullscreenElement) {
+        mermaidContainer?.requestFullscreen().catch(err => {
+            alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+        });
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+
+// Generic copy to clipboard function for code boxes
+function copyToClipboard(elementId, description = "Content", event) {
+    const element = document.getElementById(elementId);
+    const text = element.textContent;
+    
+    if (!text || text.includes("No formula selected") || text.includes("Select a formula field")) {
+        alert(`No ${description.toLowerCase()} to copy`);
+        return;
+    }
+    
+    navigator.clipboard.writeText(text).then(() => {
+        // Visual feedback - briefly change the button
+        if (event && event.currentTarget) {
+            const button = event.currentTarget;
+            const originalHTML = button.innerHTML;
+            button.innerHTML = '<svg class="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+            button.style.opacity = '100';
+            setTimeout(() => {
+                button.innerHTML = originalHTML;
+                button.style.opacity = '';
+            }, 1500);
+        }
+    }).catch(error => {
+        console.error("Error copying to clipboard:", error);
+        alert(`Failed to copy ${description.toLowerCase()} to clipboard`);
+    });
 }
 
 // Export functions to window object so they can be called from HTML
@@ -787,3 +1204,13 @@ window.filterCompressorFieldDropdown = filterCompressorFieldDropdown;
 window.compressFormula = compressFormula;
 window.copyCompressedFormula = copyCompressedFormula;
 window.generateTableReport = generateTableReport;
+window.copyToClipboard = copyToClipboard;
+window.filterAnalysisTableDropdown = filterAnalysisTableDropdown;
+window.generateTableComplexityCSV = generateTableComplexityCSV;
+window.downloadTableComplexityCSV = downloadTableComplexityCSV;
+window.filterGrapherTableDropdown = filterGrapherTableDropdown;
+window.filterGrapherFieldDropdown = filterGrapherFieldDropdown;
+window.downloadFormulaGrapherSVG = downloadFormulaGrapherSVG;
+window.openFormulaGrapherInMermaidLive = openFormulaGrapherInMermaidLive;
+window.copyFormulaGrapherMermaidText = copyFormulaGrapherMermaidText;
+window.toggleFormulaGrapherFullscreen = toggleFormulaGrapherFullscreen;

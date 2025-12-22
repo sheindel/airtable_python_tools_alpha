@@ -246,11 +246,39 @@ def format_formula_compact(formula: str) -> str:
     """
     # Remove all newlines, carriage returns, and extra spaces
     compact = re.sub(r'\s+', ' ', formula)
-    # Remove spaces around operators and commas
-    compact = re.sub(r'\s*([,()])\s*', r'\1', compact)
-    # Clean up any remaining extra spaces
-    compact = compact.strip()
-    return compact
+    
+    # Remove spaces around operators and commas, but preserve spaces inside field references
+    # Use a more sophisticated approach that doesn't affect content inside {...}
+    result = []
+    inside_field_reference = False
+    i = 0
+    
+    while i < len(compact):
+        char = compact[i]
+        
+        if char == '{':
+            inside_field_reference = True
+            result.append(char)
+        elif char == '}':
+            inside_field_reference = False
+            result.append(char)
+        elif char in '(),':
+            # Remove spaces before and after, unless inside field reference
+            if not inside_field_reference:
+                # Remove trailing space from result if present
+                if result and result[-1] == ' ':
+                    result.pop()
+            result.append(char)
+            # Skip any following spaces if not inside field reference
+            if not inside_field_reference:
+                while i + 1 < len(compact) and compact[i + 1] == ' ':
+                    i += 1
+        else:
+            result.append(char)
+        
+        i += 1
+    
+    return ''.join(result).strip()
 
 
 def format_formula_logical(formula: str, indent: str = "    ") -> str:
@@ -270,26 +298,39 @@ def format_formula_logical(formula: str, indent: str = "    ") -> str:
     result = []
     depth = 0
     i = 0
+    inside_field_reference = False
+    # Stack to track which opening parens added indentation
+    paren_stack = []
     
     while i < len(formula):
         char = formula[i]
         
-        if char == '(':
+        # Track when we're inside a field reference {...}
+        if char == '{':
+            inside_field_reference = True
+            result.append(char)
+        elif char == '}':
+            inside_field_reference = False
+            result.append(char)
+        elif char == '(' and not inside_field_reference:
             result.append(char)
             # Look ahead to see if we should add newline
             # Only add newline if there's content after the opening paren
             if i + 1 < len(formula) and formula[i + 1] not in (')', ' '):
                 depth += 1
+                paren_stack.append(True)  # This paren added indentation
                 result.append('\n')
                 result.append(indent * depth)
-        elif char == ')':
-            # Add newline before closing paren if we're at depth > 0
-            if depth > 0:
+            else:
+                paren_stack.append(False)  # This paren did NOT add indentation
+        elif char == ')' and not inside_field_reference:
+            # Only add newline before closing paren if its matching opening paren added indentation
+            if paren_stack and paren_stack.pop():
                 depth -= 1
                 result.append('\n')
                 result.append(indent * depth)
             result.append(char)
-        elif char == ',':
+        elif char == ',' and not inside_field_reference:
             result.append(char)
             # Add newline after comma if we're inside a function
             if depth > 0:
@@ -473,10 +514,6 @@ def compress_formula_from_ui(
         # Store the raw (unformatted) formula for later reformatting
         compressed_display.setAttribute("data-raw-formula", compressed)
         
-        # Enable the copy button
-        copy_btn = document.getElementById("copy-compressed-btn")
-        copy_btn.disabled = False
-        
         print(f"Successfully compressed formula for {table_name}.{field_name} (depth: {depth})")
         
     except Exception as e:
@@ -486,7 +523,3 @@ def compress_formula_from_ui(
         # Show error in UI
         compressed_display = document.getElementById("compressed-formula-display")
         compressed_display.innerHTML = f'<span class="text-red-600 dark:text-red-400">{error_msg}</span>'
-        
-        # Disable the copy button
-        copy_btn = document.getElementById("copy-compressed-btn")
-        copy_btn.disabled = True

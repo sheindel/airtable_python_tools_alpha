@@ -17,8 +17,8 @@ field_id_regex = r"{(fld[a-zA-Z0-9]{14})}"
 # Find function names
 function_name_regex = r"(\b[A-Z]+\b)"
 
-# Find operators
-operator_regex = r"([\+\-\*\/\(\)])"
+# Find operators (including comma, comparison operators, and & for concatenation)
+operator_regex = r"(!=|>=|<=|[,\+\-\*\/\(\)=<>&])"
 
 # Find string literals
 string_literal_regex = r"(\"[^\"]*\")"
