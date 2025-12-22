@@ -17,3 +17,5 @@ packages = ["networkx"]
 "./tabs/dependency_analysis.py" = "tabs/dependency_analysis.py"
 "./tabs/formula_grapher.py" = "tabs/formula_grapher.py"
 "./tabs/formula_compressor.py" = "tabs/formula_compressor.py"
+"./tabs/complexity_scorecard.py" = "tabs/complexity_scorecard.py"
+"./tabs/unused_fields.py" = "tabs/unused_fields.py"

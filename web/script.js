@@ -96,6 +96,12 @@ let grapherTableOptions = [];
 let grapherFieldOptions = [];
 let originalFormulaText = ""; // Store original formula with field IDs
 let lastAnalysisCSV = ""; // Store CSV data for download
+let scorecardData = []; // Store scorecard data for sorting
+let scorecardSortField = "complexity_score"; // Current sort field
+let scorecardSortAsc = false; // Sort direction (false = descending)
+let unusedFieldsData = []; // Store unused fields data for sorting
+let unusedSortField = "table_name"; // Current sort field for unused
+let unusedSortAsc = true; // Sort direction for unused
 
 // Dark mode functionality
 function initializeDarkMode() {
@@ -163,6 +169,13 @@ function switchTab(tabName) {
             content.classList.remove('active');
         }
     });
+    
+    // Initialize tab-specific dropdowns when switching to that tab
+    if (tabName === 'complexity-scorecard' && !scorecardDropdownsInitialized) {
+        initializeScorecardDropdowns();
+    } else if (tabName === 'unused-fields' && !unusedDropdownsInitialized) {
+        initializeUnusedDropdowns();
+    }
     
     // Call Python tab switching handler if available
     if (typeof switchTabPython !== 'undefined') {
@@ -1161,6 +1174,463 @@ function toggleFormulaGrapherFullscreen() {
 }
 
 
+// Complexity Scorecard functions
+let scorecardDropdownsInitialized = false;
+
+function initializeScorecardDropdowns() {
+    const tableFilter = document.getElementById("scorecard-table-filter");
+    if (!tableFilter) return;
+    
+    // Clear existing options except "All Tables"
+    tableFilter.innerHTML = '<option value="">All Tables</option>';
+    
+    // Get table names from schema directly (faster than Python call)
+    const schemaData = JSON.parse(localStorage.getItem("airtableSchema"));
+    if (schemaData?.schema?.tables) {
+        const tableNames = schemaData.schema.tables.map(t => t.name).sort();
+        tableNames.forEach(name => {
+            const option = document.createElement("option");
+            option.value = name;
+            option.textContent = name;
+            tableFilter.appendChild(option);
+        });
+        scorecardDropdownsInitialized = true;
+    }
+}
+
+function refreshComplexityScorecard() {
+    const tableFilter = document.getElementById("scorecard-table-filter");
+    const minScoreInput = document.getElementById("scorecard-min-score");
+    
+    const filterTable = tableFilter ? tableFilter.value : "";
+    const minScore = minScoreInput ? parseFloat(minScoreInput.value) || 0 : 0;
+    
+    // Initialize dropdowns if needed
+    if (!scorecardDropdownsInitialized) {
+        initializeScorecardDropdowns();
+    }
+    
+    // Show loading state
+    const tbody = document.getElementById("scorecard-table-body");
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400 italic">
+                    <div class="flex items-center justify-center">
+                        <svg class="animate-spin h-5 w-5 mr-3 text-blue-500" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Analyzing complexity... This may take a moment for large bases.
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+    
+    // Use setTimeout to allow the UI to update before starting the heavy computation
+    setTimeout(() => {
+        // Get data from Python
+        if (typeof window.getComplexityScorecardData !== 'undefined') {
+            try {
+                // Parse JSON string returned from Python
+                const jsonData = window.getComplexityScorecardData(filterTable || null, minScore);
+                scorecardData = JSON.parse(jsonData);
+                
+                // Update summary
+                updateComplexitySummary();
+                
+                // Render the table
+                renderScorecardTable();
+            } catch (error) {
+                console.error("Error getting complexity data:", error);
+                if (tbody) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="px-4 py-8 text-center text-red-500 dark:text-red-400">
+                                Failed to get complexity data. Make sure you have loaded a schema.
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+        } else {
+            alert("Complexity scorecard is not yet initialized. Please refresh the page.");
+        }
+    }, 50);
+}
+
+function updateComplexitySummary() {
+    if (typeof window.getComplexitySummary !== 'undefined') {
+        try {
+            // Parse JSON string returned from Python
+            const jsonData = window.getComplexitySummary();
+            const summary = JSON.parse(jsonData);
+            
+            document.getElementById("summary-total-fields").textContent = summary.total_computed_fields || 0;
+            document.getElementById("summary-avg-score").textContent = summary.avg_complexity_score || 0;
+            document.getElementById("summary-max-score").textContent = summary.max_complexity_score || 0;
+            
+            // Count high complexity fields (score > 20)
+            const highCount = scorecardData.filter(f => f.complexity_score > 20).length;
+            document.getElementById("summary-high-count").textContent = highCount;
+        } catch (error) {
+            console.error("Error getting summary:", error);
+        }
+    }
+}
+
+function renderScorecardTable() {
+    const tbody = document.getElementById("scorecard-table-body");
+    if (!tbody) return;
+    
+    if (!scorecardData || scorecardData.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400 italic">
+                    No computed fields found. Make sure you have loaded a schema.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    // Sort data
+    const sortedData = [...scorecardData].sort((a, b) => {
+        let aVal = a[scorecardSortField];
+        let bVal = b[scorecardSortField];
+        
+        // Handle string vs number comparison
+        if (typeof aVal === 'string') {
+            aVal = aVal.toLowerCase();
+            bVal = bVal.toLowerCase();
+            return scorecardSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+        
+        return scorecardSortAsc ? aVal - bVal : bVal - aVal;
+    });
+    
+    // Build table rows
+    const rows = sortedData.map(field => {
+        const scoreClass = getScoreColorClass(field.complexity_score);
+        const typeIcon = getFieldTypeIcon(field.field_type);
+        
+        return `
+            <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td class="px-4 py-3">
+                    <span class="px-2 py-1 rounded text-sm font-medium ${scoreClass}">
+                        ${field.complexity_score}
+                    </span>
+                </td>
+                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                    ${escapeHtml(field.table_name)}
+                </td>
+                <td class="px-4 py-3 text-gray-700 dark:text-gray-300">
+                    ${escapeHtml(field.field_name)}
+                </td>
+                <td class="px-4 py-3">
+                    <span class="text-lg" title="${field.field_type}">${typeIcon}</span>
+                </td>
+                <td class="px-4 py-3 text-center">${field.max_depth}</td>
+                <td class="px-4 py-3 text-center">${field.backward_deps}</td>
+                <td class="px-4 py-3 text-center">${field.forward_deps}</td>
+                <td class="px-4 py-3 text-center">
+                    ${field.cross_table_deps > 1 ? 
+                        `<span class="text-orange-600 dark:text-orange-400 font-medium">${field.cross_table_deps}</span>` : 
+                        field.cross_table_deps}
+                </td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = rows.join('');
+}
+
+function getScoreColorClass(score) {
+    if (score >= 50) return "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300";
+    if (score >= 30) return "bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300";
+    if (score >= 20) return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300";
+    if (score >= 10) return "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300";
+    return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
+}
+
+function getFieldTypeIcon(fieldType) {
+    const icons = {
+        "formula": "f<sub>x</sub>",
+        "rollup": "🧻",
+        "multipleLookupValues": "🔭",
+        "count": "🗳️"
+    };
+    return icons[fieldType] || "📊";
+}
+
+function sortScorecardBy(field) {
+    if (scorecardSortField === field) {
+        // Toggle sort direction
+        scorecardSortAsc = !scorecardSortAsc;
+    } else {
+        // New field, default to descending for scores, ascending for names
+        scorecardSortField = field;
+        scorecardSortAsc = (field === 'table_name' || field === 'field_name');
+    }
+    
+    renderScorecardTable();
+}
+
+function downloadComplexityCSV() {
+    if (typeof window.exportComplexityCSV !== 'undefined') {
+        try {
+            const csvData = window.exportComplexityCSV();
+            
+            // Download the CSV
+            const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            
+            const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
+            const filename = `complexity_scorecard_${timestamp}.csv`;
+            
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
+            link.style.visibility = "hidden";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error("Error exporting CSV:", error);
+            alert("Failed to export CSV");
+        }
+    } else {
+        alert("Export function not available. Please refresh the page.");
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Unused Fields Detector functions
+let unusedDropdownsInitialized = false;
+
+function initializeUnusedDropdowns() {
+    const tableFilter = document.getElementById("unused-table-filter");
+    const typeFilter = document.getElementById("unused-type-filter");
+    
+    if (tableFilter) {
+        tableFilter.innerHTML = '<option value="">All Tables</option>';
+        // Get table names from schema directly (faster than Python call)
+        const schemaData = JSON.parse(localStorage.getItem("airtableSchema"));
+        if (schemaData?.schema?.tables) {
+            const tableNames = schemaData.schema.tables.map(t => t.name).sort();
+            tableNames.forEach(name => {
+                const option = document.createElement("option");
+                option.value = name;
+                option.textContent = name;
+                tableFilter.appendChild(option);
+            });
+            unusedDropdownsInitialized = true;
+        }
+    }
+    
+    if (typeFilter) {
+        typeFilter.innerHTML = '<option value="">All Types</option>';
+        if (typeof window.getFieldTypesForDropdown !== 'undefined') {
+            try {
+                const types = window.getFieldTypesForDropdown();
+                types.forEach(type => {
+                    const option = document.createElement("option");
+                    option.value = type;
+                    option.textContent = type;
+                    typeFilter.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Error getting field types:", error);
+            }
+        }
+    }
+}
+
+function refreshUnusedFields() {
+    const tableFilter = document.getElementById("unused-table-filter");
+    const typeFilter = document.getElementById("unused-type-filter");
+    
+    const filterTable = tableFilter ? tableFilter.value : "";
+    const filterType = typeFilter ? typeFilter.value : "";
+    
+    // Initialize dropdowns if needed
+    initializeUnusedDropdowns();
+    
+    // Get data from Python
+    if (typeof window.getUnusedFieldsData !== 'undefined') {
+        try {
+            // Parse JSON string returned from Python
+            const jsonData = window.getUnusedFieldsData(filterTable, filterType);
+            unusedFieldsData = JSON.parse(jsonData);
+            
+            // Update summary
+            updateUnusedSummary();
+            
+            // Render the table
+            renderUnusedTable();
+        } catch (error) {
+            console.error("Error getting unused fields data:", error);
+            console.error("Error details:", error.message, error.stack);
+            alert("Failed to get unused fields data. Make sure you have loaded a schema. Error: " + (error.message || error));
+        }
+    } else {
+        alert("Unused fields detector is not yet initialized. Please refresh the page.");
+    }
+}
+
+function updateUnusedSummary() {
+    if (typeof window.getUnusedFieldsSummary !== 'undefined') {
+        try {
+            // Parse JSON string returned from Python
+            const jsonData = window.getUnusedFieldsSummary();
+            const summary = JSON.parse(jsonData);
+            
+            document.getElementById("unused-summary-total").textContent = summary.total_fields || 0;
+            document.getElementById("unused-summary-count").textContent = summary.unused_count || 0;
+            document.getElementById("unused-summary-percent").textContent = (summary.unused_percentage || 0) + "%";
+            document.getElementById("unused-summary-tables").textContent = 
+                `${summary.tables_with_unused || 0}/${summary.total_tables || 0}`;
+        } catch (error) {
+            console.error("Error getting unused summary:", error);
+        }
+    }
+}
+
+function renderUnusedTable() {
+    const tbody = document.getElementById("unused-table-body");
+    if (!tbody) return;
+    
+    if (!unusedFieldsData || unusedFieldsData.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400 italic">
+                    No unused fields found — all fields are referenced somewhere!
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    // Sort data
+    const sortedData = [...unusedFieldsData].sort((a, b) => {
+        let aVal = a[unusedSortField];
+        let bVal = b[unusedSortField];
+        
+        if (typeof aVal === 'string') {
+            aVal = aVal.toLowerCase();
+            bVal = bVal.toLowerCase();
+            return unusedSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+        
+        return unusedSortAsc ? aVal - bVal : bVal - aVal;
+    });
+    
+    // Build table rows
+    const rows = sortedData.map(field => {
+        const typeIcon = getFieldTypeIconUnused(field.field_type);
+        
+        return `
+            <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                    ${escapeHtml(field.table_name)}
+                </td>
+                <td class="px-4 py-3 text-gray-700 dark:text-gray-300">
+                    ${escapeHtml(field.field_name)}
+                </td>
+                <td class="px-4 py-3">
+                    <span class="text-lg" title="${field.field_type}">${typeIcon}</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">${field.field_type}</span>
+                </td>
+                <td class="px-4 py-3 text-center">
+                    ${field.outbound_count > 0 ? 
+                        `<span class="text-blue-600 dark:text-blue-400">${field.outbound_count}</span>` : 
+                        '<span class="text-gray-400">0</span>'}
+                </td>
+                <td class="px-4 py-3">
+                    <span class="px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300">
+                        Not Referenced
+                    </span>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = rows.join('');
+}
+
+function getFieldTypeIconUnused(fieldType) {
+    const icons = {
+        "formula": "f<sub>x</sub>",
+        "rollup": "🧻",
+        "multipleLookupValues": "🔭",
+        "count": "🗳️",
+        "multipleRecordLinks": "🔗",
+        "singleSelect": "→",
+        "multipleSelects": "☰",
+        "singleLineText": "📝",
+        "multilineText": "📝",
+        "richText": "📝",
+        "number": "🔢",
+        "checkbox": "☑️",
+        "date": "📅",
+        "createdTime": "🕒",
+        "lastModifiedTime": "🕒",
+        "email": "📧",
+        "url": "🔗",
+        "percent": "📊",
+        "rating": "⭐",
+        "duration": "⏱️",
+        "multipleAttachments": "📎",
+        "autoNumber": "↓"
+    };
+    return icons[fieldType] || "📊";
+}
+
+function sortUnusedBy(field) {
+    if (unusedSortField === field) {
+        unusedSortAsc = !unusedSortAsc;
+    } else {
+        unusedSortField = field;
+        unusedSortAsc = true;
+    }
+    
+    renderUnusedTable();
+}
+
+function downloadUnusedFieldsCSV() {
+    if (typeof window.exportUnusedFieldsCSV !== 'undefined') {
+        try {
+            const csvData = window.exportUnusedFieldsCSV();
+            
+            const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            
+            const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
+            const filename = `unused_fields_${timestamp}.csv`;
+            
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
+            link.style.visibility = "hidden";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error("Error exporting CSV:", error);
+            alert("Failed to export CSV");
+        }
+    } else {
+        alert("Export function not available. Please refresh the page.");
+    }
+}
+
+
 // Generic copy to clipboard function for code boxes
 function copyToClipboard(elementId, description = "Content", event) {
     const element = document.getElementById(elementId);
@@ -1214,3 +1684,9 @@ window.downloadFormulaGrapherSVG = downloadFormulaGrapherSVG;
 window.openFormulaGrapherInMermaidLive = openFormulaGrapherInMermaidLive;
 window.copyFormulaGrapherMermaidText = copyFormulaGrapherMermaidText;
 window.toggleFormulaGrapherFullscreen = toggleFormulaGrapherFullscreen;
+window.refreshComplexityScorecard = refreshComplexityScorecard;
+window.sortScorecardBy = sortScorecardBy;
+window.downloadComplexityCSV = downloadComplexityCSV;
+window.refreshUnusedFields = refreshUnusedFields;
+window.sortUnusedBy = sortUnusedBy;
+window.downloadUnusedFieldsCSV = downloadUnusedFieldsCSV;

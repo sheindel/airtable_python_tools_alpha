@@ -154,6 +154,14 @@
                             data-tab="formula-compressor" onclick="switchTab('formula-compressor')">
                         Formula Compressor
                     </button>
+                    <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
+                            data-tab="complexity-scorecard" onclick="switchTab('complexity-scorecard')">
+                        Complexity Scorecard
+                    </button>
+                    <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
+                            data-tab="unused-fields" onclick="switchTab('unused-fields')">
+                        Unused Fields
+                    </button>
                 </nav>
             </div>
         </div>
@@ -528,6 +536,219 @@
                             </svg>
                         </button>
                     </div>
+                </div>
+            </div>
+
+            <!-- Complexity Scorecard Tab -->
+            <div id="complexity-scorecard-tab" class="tab-content hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md transition-colors duration-200">
+                <h2 class="text-xl font-semibold mb-4 dark:text-white">Field Complexity Scorecard</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">Identify and analyze the most complex computed fields in your base. Higher scores indicate more dependencies and cross-table relationships.</p>
+                
+                <!-- Summary Cards -->
+                <div id="complexity-summary" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg">
+                        <h3 class="text-sm font-medium text-blue-600 dark:text-blue-400">Total Computed Fields</h3>
+                        <p class="text-2xl font-bold text-blue-700 dark:text-blue-300" id="summary-total-fields">--</p>
+                    </div>
+                    <div class="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg">
+                        <h3 class="text-sm font-medium text-green-600 dark:text-green-400">Average Complexity</h3>
+                        <p class="text-2xl font-bold text-green-700 dark:text-green-300" id="summary-avg-score">--</p>
+                    </div>
+                    <div class="bg-yellow-50 dark:bg-yellow-900/30 p-4 rounded-lg">
+                        <h3 class="text-sm font-medium text-yellow-600 dark:text-yellow-400">Max Complexity</h3>
+                        <p class="text-2xl font-bold text-yellow-700 dark:text-yellow-300" id="summary-max-score">--</p>
+                    </div>
+                    <div class="bg-purple-50 dark:bg-purple-900/30 p-4 rounded-lg">
+                        <h3 class="text-sm font-medium text-purple-600 dark:text-purple-400">High Complexity (>20)</h3>
+                        <p class="text-2xl font-bold text-purple-700 dark:text-purple-300" id="summary-high-count">--</p>
+                    </div>
+                </div>
+                
+                <!-- Filters -->
+                <div class="border-2 border-gray-300 dark:border-gray-600 rounded-lg p-4 mb-6">
+                    <h3 class="text-lg font-semibold mb-3 dark:text-white flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                        </svg>
+                        Filters
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="scorecard-table-filter">Filter by Table:</label>
+                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="scorecard-table-filter" onchange="refreshComplexityScorecard()">
+                                <option value="">All Tables</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="scorecard-min-score">Minimum Score:</label>
+                            <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                                   type="number" 
+                                   id="scorecard-min-score" 
+                                   placeholder="0" 
+                                   min="0" 
+                                   value="0"
+                                   onchange="refreshComplexityScorecard()">
+                        </div>
+                        <div class="flex items-end">
+                            <button class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700"
+                                    onclick="refreshComplexityScorecard()">
+                                Refresh Scorecard
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Scorecard Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-300">
+                            <tr>
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortScorecardBy('complexity_score')">
+                                    Score ↕
+                                </th>
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortScorecardBy('table_name')">
+                                    Table ↕
+                                </th>
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortScorecardBy('field_name')">
+                                    Field ↕
+                                </th>
+                                <th scope="col" class="px-4 py-3">Type</th>
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortScorecardBy('max_depth')">
+                                    Depth ↕
+                                </th>
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortScorecardBy('backward_deps')">
+                                    ← Deps ↕
+                                </th>
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortScorecardBy('forward_deps')">
+                                    → Deps ↕
+                                </th>
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortScorecardBy('cross_table_deps')">
+                                    X-Table ↕
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="scorecard-table-body">
+                            <tr>
+                                <td colspan="8" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400 italic">
+                                    Click "Refresh Scorecard" to analyze your base
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Export Button -->
+                <div class="mt-4 flex gap-2">
+                    <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700"
+                            onclick="downloadComplexityCSV()">
+                        Download CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- Unused Fields Tab -->
+            <div id="unused-fields-tab" class="tab-content hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md transition-colors duration-200">
+                <h2 class="text-xl font-semibold mb-4 dark:text-white">Unused Field Detector</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">Find fields with zero inbound references — not used in any formula, rollup, lookup, or count. These may be candidates for cleanup.</p>
+                
+                <!-- Summary Cards -->
+                <div id="unused-summary" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg">
+                        <h3 class="text-sm font-medium text-blue-600 dark:text-blue-400">Total Fields</h3>
+                        <p class="text-2xl font-bold text-blue-700 dark:text-blue-300" id="unused-summary-total">--</p>
+                    </div>
+                    <div class="bg-yellow-50 dark:bg-yellow-900/30 p-4 rounded-lg">
+                        <h3 class="text-sm font-medium text-yellow-600 dark:text-yellow-400">Unused Fields</h3>
+                        <p class="text-2xl font-bold text-yellow-700 dark:text-yellow-300" id="unused-summary-count">--</p>
+                    </div>
+                    <div class="bg-orange-50 dark:bg-orange-900/30 p-4 rounded-lg">
+                        <h3 class="text-sm font-medium text-orange-600 dark:text-orange-400">Unused %</h3>
+                        <p class="text-2xl font-bold text-orange-700 dark:text-orange-300" id="unused-summary-percent">--%</p>
+                    </div>
+                    <div class="bg-purple-50 dark:bg-purple-900/30 p-4 rounded-lg">
+                        <h3 class="text-sm font-medium text-purple-600 dark:text-purple-400">Tables Affected</h3>
+                        <p class="text-2xl font-bold text-purple-700 dark:text-purple-300" id="unused-summary-tables">--</p>
+                    </div>
+                </div>
+                
+                <!-- Filters -->
+                <div class="border-2 border-gray-300 dark:border-gray-600 rounded-lg p-4 mb-6">
+                    <h3 class="text-lg font-semibold mb-3 dark:text-white flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                        </svg>
+                        Filters
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="unused-table-filter">Filter by Table:</label>
+                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="unused-table-filter" onchange="refreshUnusedFields()">
+                                <option value="">All Tables</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="unused-type-filter">Filter by Type:</label>
+                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="unused-type-filter" onchange="refreshUnusedFields()">
+                                <option value="">All Types</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700"
+                                    onclick="refreshUnusedFields()">
+                                Scan for Unused Fields
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Results Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-300">
+                            <tr>
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortUnusedBy('table_name')">
+                                    Table ↕
+                                </th>
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortUnusedBy('field_name')">
+                                    Field ↕
+                                </th>
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortUnusedBy('field_type')">
+                                    Type ↕
+                                </th>
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortUnusedBy('outbound_count')">
+                                    Outbound Refs ↕
+                                </th>
+                                <th scope="col" class="px-4 py-3">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unused-table-body">
+                            <tr>
+                                <td colspan="5" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400 italic">
+                                    Click "Scan for Unused Fields" to analyze your base
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Info Box -->
+                <div class="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <h4 class="font-semibold text-blue-800 dark:text-blue-300 mb-2">💡 What does "unused" mean?</h4>
+                    <p class="text-sm text-blue-700 dark:text-blue-400">
+                        An unused field has <strong>zero inbound references</strong> — no other field in your base uses it in a formula, rollup, lookup, or count.
+                        These fields may still contain valuable data but aren't being computed or displayed elsewhere.
+                        Consider reviewing them to determine if they can be removed or consolidated.
+                    </p>
+                </div>
+                
+                <!-- Export Button -->
+                <div class="mt-4 flex gap-2">
+                    <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700"
+                            onclick="downloadUnusedFieldsCSV()">
+                        Download CSV
+                    </button>
                 </div>
             </div>
         </div>

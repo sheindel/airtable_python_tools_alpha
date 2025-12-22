@@ -11,7 +11,7 @@ sys.path.append("web")
 from pyscript import window
 
 # Import tab modules
-from tabs import dependency_mapper, dependency_analysis, formula_grapher, formula_compressor
+from tabs import dependency_mapper, dependency_analysis, formula_grapher, formula_compressor, complexity_scorecard, unused_fields
 
 # Store current active tab
 current_tab = "dependency-mapper"
@@ -26,6 +26,8 @@ def initialize_tabs():
     dependency_analysis.initialize()
     formula_grapher.initialize()
     formula_compressor.initialize()
+    complexity_scorecard.initialize()
+    unused_fields.initialize()
     
     print("All tabs initialized")
 
