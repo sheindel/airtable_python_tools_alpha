@@ -7,14 +7,18 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "httpx" },
+    { name = "networkx" },
     { name = "pyscript" },
+    { name = "python-dotenv" },
     { name = "typer" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "networkx", specifier = ">=3.6.1" },
     { name = "pyscript", specifier = ">=0.3.3" },
+    { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "typer", specifier = ">=0.9.0" },
 ]
 
@@ -215,6 +219,15 @@ wheels = [
 ]
 
 [[package]]
+name = "networkx"
+version = "3.6.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6a/51/63fe664f3908c97be9d2e4f1158eb633317598cfa6e1fc14af5383f17512/networkx-3.6.1.tar.gz", hash = "sha256:26b7c357accc0c8cde558ad486283728b65b6a95d85ee1cd66bafab4c8168509", size = 2517025 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9e/c9/b2622292ea83fbb4ec318f5b9ab867d0a28ab43c5717bb85b0a5f6b3b0a4/networkx-3.6.1-py3-none-any.whl", hash = "sha256:d47fbf302e7d9cbbb9e2555a0d267983d2aa476bac30e90dfbe5669bd57f3762", size = 2068504 },
+]
+
+[[package]]
 name = "platformdirs"
 version = "4.2.2"
 source = { registry = "https://pypi.org/simple" }
@@ -257,6 +270,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/9d/4d/ee8606f71049fe29666e5541f0dd1a4f861dd3a6824334fac3c5aec3e8d9/pyscript-0.3.3.tar.gz", hash = "sha256:11fc64a3f187d8645c601ae6a80e3f0142e0dd9e0c5d3244b0ec508ca0d373f9", size = 20791 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f2/d8/1881edf3b8653cf2f3b8005704126c738c151b6f8168a5806ea61f1efb5f/pyscript-0.3.3-py3-none-any.whl", hash = "sha256:320383f38e9eec6515dbe0c184d4ad9d9c58e2c98fb82ec09e8d8b2e93c9e62f", size = 15556 },
+]
+
+[[package]]
+name = "python-dotenv"
+version = "1.2.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f0/26/19cadc79a718c5edbec86fd4919a6b6d3f681039a2f6d66d14be94e75fb9/python_dotenv-1.2.1.tar.gz", hash = "sha256:42667e897e16ab0d66954af0e60a9caa94f0fd4ecf3aaf6d2d260eec1aa36ad6", size = 44221 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/14/1b/a298b06749107c305e1fe0f814c6c74aea7b2f1e10989cb30f544a1b3253/python_dotenv-1.2.1-py3-none-any.whl", hash = "sha256:b81ee9561e9ca4004139c6cbba3a238c32b03e4894671e181b671e8cb8425d61", size = 21230 },
 ]
 
 [[package]]

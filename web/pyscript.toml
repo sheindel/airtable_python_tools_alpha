@@ -1,7 +1,19 @@
-name = "Airtable Mermaid Schema Grapher"
-version = "0.1.0"
-description = "Generate a Mermaid schema graph from an Airtable base"
+name = "Airtable Analysis Tools"
+version = "0.2.0"
+description = "Multiple tools for analyzing Airtable bases: Dependency Mapping, Analysis, Formula Graphing, and Compression"
+
+packages = ["networkx"]
 
 [files]
-"./airtable_mermaid_generator.py" = ""
-"./at_types.py" = ""
+"./airtable_mermaid_generator.py" = "airtable_mermaid_generator.py"
+"./at_metadata_graph.py" = "at_metadata_graph.py"
+"./at_types.py" = "at_types.py"
+"./at_formula_parser.py" = "at_formula_parser.py"
+"./components/__init__.py" = "components/__init__.py"
+"./components/airtable_client.py" = "components/airtable_client.py"
+"./components/ui_helpers.py" = "components/ui_helpers.py"
+"./tabs/__init__.py" = "tabs/__init__.py"
+"./tabs/dependency_mapper.py" = "tabs/dependency_mapper.py"
+"./tabs/dependency_analysis.py" = "tabs/dependency_analysis.py"
+"./tabs/formula_grapher.py" = "tabs/formula_grapher.py"
+"./tabs/formula_compressor.py" = "tabs/formula_compressor.py"

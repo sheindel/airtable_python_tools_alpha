@@ -239,5 +239,4 @@ class TableMetadata(TypedDict):
 
 class AirtableMetadata(TypedDict):
     tables: list[TableMetadata]
-    table_lookup: dict[str, TableMetadata]
 

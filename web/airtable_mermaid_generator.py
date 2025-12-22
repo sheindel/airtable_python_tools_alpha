@@ -85,7 +85,7 @@ def field_metadata_to_mermaid_node(
 
     
     # TODO we are using an array of nodes here so that we could append entire formulas in a subgraph
-    # if a specific type above hasn't specified a full descrition, then we fall back to our default
+    # if a specific type above hasn't specified a full description, then we fall back to our default
     if not nodes:
         if full_description:
             nodes.append(f'''
@@ -103,6 +103,27 @@ def field_metadata_to_mermaid_node(
     }
 
 
+def get_node_id(
+    metadata: AirtableMetadata,
+    field: str,
+    table_name: str = ''
+):
+    if not re.match(r"fld[A-Za-z0-9]{14}", field):
+        # if this isn't a field ID, then we assume it is a field name and we need the user
+        # to specify the table as well
+        if not table_name:
+            raise Exception("Please specify a table name when using a field name")
+        
+        print(field, table_name)
+        field_metadata = get_field_metadata_by_name(field, table_name, metadata)
+        if not field_metadata:
+            raise Exception(f"Field {field} not found")
+        
+        field = field_metadata["id"]
+    
+    return field
+
+
 class MermaidFlowchartDirection(Enum):
     TD = "TD"
     LR = "LR"
@@ -118,26 +139,17 @@ def airtable_schema_to_mermaid(
     verbose: bool = False,
 ):
     id_filter: list[str] = []
-    if field:
-        # if the field_id matches this regex fld[A-Za-z0-9]{14}, then it is a 
-        # true field ID
-        # if not, we will assume it is a field name and look it up
-        if not re.match(r"fld[A-Za-z0-9]{14}", field):
-            # if this isn't a field ID, then we assume it is a field name and we need the user
-            # to specify the table as well
-            if not table_name:
-                raise Exception("Please specify a table name when using a field name")
-            
-            field_metadata = get_field_metadata_by_name(field, table_name, airtable_metadata)
-            if not field_metadata:
-                raise Exception(f"Field {field} not found")
-            
-            field = field_metadata["id"]
-        id_filter = find_all_related_fields_by_id_(
-            field, 
-            airtable_metadata, 
-            verbose
-        )
+    field_id = get_node_id(
+        airtable_metadata,
+        field, 
+        table_name
+    )
+    
+    id_filter = find_all_related_fields_by_id_(
+        field_id, 
+        airtable_metadata, 
+        verbose
+    )
 
     id_filter_set = set(id_filter)
 
@@ -145,6 +157,7 @@ def airtable_schema_to_mermaid(
     # and basic fields don't get included here
     if field:
         id_filter_set.add(field)
+    
     mermaid_text = f'flowchart {direction}\n'
     tables = airtable_metadata["tables"]
     for table in tables:
@@ -242,7 +255,7 @@ def get_related_fields(
         field_metadata: AirTableFieldMetadata, 
         visited_fields: set[str] = set(),
         depth = 0,
-):
+) -> list[str]:
     def print_debug(x): print(f"{depth * INDENT}{x}")
 
     next_fields_to_search: list[str] = []

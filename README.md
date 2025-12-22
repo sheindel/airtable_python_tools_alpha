@@ -12,6 +12,8 @@ uv install
 
 ## TODO
 - [ ] Process formulas into subgraph flowchart
+- [ ] Allow an element to render itself as a subgraph (maybe it can just be a normal node?)
+- [ ] 
 
 ## Usage
 To use the Airtable Mermaid Grapher, you can run the main script using the following command:

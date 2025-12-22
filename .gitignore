@@ -172,3 +172,11 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# AI/LLM notes and analysis
+.ai_notes/
+
+# Ignore potential output files
+*.json
+*.csv
+.~lock*

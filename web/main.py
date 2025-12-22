@@ -1,63 +1,48 @@
-import json
+"""Main entry point for Airtable Analysis Tools web application
 
-from pyscript import document, window
-from pyodide.ffi.wrappers import add_event_listener
+This module handles:
+- Tab initialization and routing
+- Common UI state management
+- Coordination between different analysis tools
+"""
+import sys
+sys.path.append("web")
 
-from at_types import AirtableMetadata
-from airtable_mermaid_generator import airtable_schema_to_mermaid
+from pyscript import window
+
+# Import tab modules
+from tabs import dependency_mapper, dependency_analysis, formula_grapher, formula_compressor
+
+# Store current active tab
+current_tab = "dependency-mapper"
 
 
-def save_local_storage(key: str, value):
-    window.localStorage.setItem(key, value)
+def initialize_tabs():
+    """Initialize all tab modules"""
+    print("Initializing tabs...")
     
-
-def get_local_storage(key: str):
-    return window.localStorage.getItem(key)
-
-
-def get_local_storage_metadata():
-    metadata = get_local_storage("airtableSchema")
-    if metadata:
-        json_data: AirtableMetadata = json.loads(metadata)["schema"]
-        return json_data
-    else:
-        return None
+    # Initialize each tab
+    dependency_mapper.initialize()
+    dependency_analysis.initialize()
+    formula_grapher.initialize()
+    formula_compressor.initialize()
+    
+    print("All tabs initialized")
 
 
-table_dropdown = document.getElementById("table-dropdown")
-field_dropdown = document.getElementById("field-dropdown")
-flowchart_type_dropdown = document.getElementById("flowchart-type")
-
-def update_mermaid_graph(
-    table_name: str,
-    field_name: str,
-    flowchart_type: str,
-):
-    print(f"Table: {table_name}, Field: {field_name}")
-    airtable_metadata = get_local_storage_metadata()
-    mermaid_text = airtable_schema_to_mermaid(
-        airtable_metadata,
-        field=field_name, 
-        table_name=table_name, 
-        direction=flowchart_type,
-        verbose=False
-    )
-    save_local_storage("lastGraphDefinition", mermaid_text)
-
-    mermaid_container = document.getElementById("mermaid-container")
-    mermaid_container.innerHTML = f'<div class="mermaid">{mermaid_text}</div>'
-    window.mermaid.run()
+def switch_tab(tab_name: str):
+    """Switch to a different tab
+    
+    Args:
+        tab_name: Name of the tab to switch to
+    """
+    global current_tab
+    current_tab = tab_name
+    print(f"Switched to tab: {tab_name}")
 
 
-def parametersChanged(event):
-    # TODO are we sure this can't be multi-selected in the HTML?
-    table = table_dropdown.selectedOptions[0].text
-    field_name = field_dropdown.selectedOptions[0].text
-    direction = flowchart_type_dropdown.selectedOptions[0].value
-    print(f"Table: {table}, Field: {field_name}, Direction: {direction}")
+# Export tab switching function to JavaScript
+window.switchTabPython = switch_tab
 
-    update_mermaid_graph(table, field_name, direction)
-
-
-add_event_listener(field_dropdown, "change", parametersChanged)
-add_event_listener(flowchart_type_dropdown, "change", parametersChanged)
+# Initialize all tabs when PyScript is ready
+initialize_tabs()

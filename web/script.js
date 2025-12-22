@@ -1,11 +1,210 @@
 document.addEventListener("DOMContentLoaded", () => {
+    // Initialize dark mode
+    initializeDarkMode();
+    
     updateSchemaInfo();
     document.getElementById("table-dropdown").addEventListener("change", updateFieldDropdown);
-    // document.getElementById("field-dropdown").addEventListener("change", function() {
-    //     const selectedField = this.options[this.selectedIndex].text;
-    //     updateMermaidDiagram(selectedField);
-    // });
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener("click", (event) => {
+        const tableDropdown = document.getElementById("table-dropdown");
+        const tableList = document.getElementById("table-dropdown-list");
+        const fieldDropdown = document.getElementById("field-dropdown");
+        const fieldList = document.getElementById("field-dropdown-list");
+        const compressorTableDropdown = document.getElementById("compressor-table-dropdown");
+        const compressorTableList = document.getElementById("compressor-table-dropdown-list");
+        const compressorFieldDropdown = document.getElementById("compressor-field-dropdown");
+        const compressorFieldList = document.getElementById("compressor-field-dropdown-list");
+        
+        // Close table dropdown if click is outside
+        if (!tableDropdown.contains(event.target) && !tableList.contains(event.target)) {
+            tableList.classList.add("hidden");
+        }
+        
+        // Close field dropdown if click is outside
+        if (!fieldDropdown.contains(event.target) && !fieldList.contains(event.target)) {
+            fieldList.classList.add("hidden");
+        }
+        
+        // Close compressor table dropdown if click is outside
+        if (compressorTableDropdown && compressorTableList && 
+            !compressorTableDropdown.contains(event.target) && 
+            !compressorTableList.contains(event.target)) {
+            compressorTableList.classList.add("hidden");
+        }
+        
+        // Close compressor field dropdown if click is outside
+        if (compressorFieldDropdown && compressorFieldList && 
+            !compressorFieldDropdown.contains(event.target) && 
+            !compressorFieldList.contains(event.target)) {
+            compressorFieldList.classList.add("hidden");
+        }
+    });
 });
+
+// Wait for PyScript to be ready before calling Python functions
+addEventListener('py:ready', () => {
+    console.log('PyScript is ready - tabs initialized');
+    
+    // Add event listener for output format changes
+    const outputFormatSelect = document.getElementById("output-format");
+    if (outputFormatSelect) {
+        outputFormatSelect.addEventListener("change", onOutputFormatChange);
+    }
+    
+    // Add event listener for display format changes
+    const displayFormatSelect = document.getElementById("display-format");
+    if (displayFormatSelect) {
+        displayFormatSelect.addEventListener("change", onDisplayFormatChange);
+    }
+});
+
+let tableOptions = [];
+let fieldOptions = [];
+let compressorTableOptions = [];
+let compressorFieldOptions = [];
+let originalFormulaText = ""; // Store original formula with field IDs
+
+// Dark mode functionality
+function initializeDarkMode() {
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+    const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+    
+    // Check if user has a saved preference, otherwise use system preference
+    const savedTheme = localStorage.getItem('color-theme');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+        document.documentElement.classList.add('dark');
+        themeToggleLightIcon.classList.remove('hidden');
+    } else {
+        document.documentElement.classList.remove('dark');
+        themeToggleDarkIcon.classList.remove('hidden');
+    }
+    
+    // Toggle dark mode
+    themeToggleBtn.addEventListener('click', () => {
+        // Toggle icons
+        themeToggleDarkIcon.classList.toggle('hidden');
+        themeToggleLightIcon.classList.toggle('hidden');
+        
+        // Toggle dark class on html element
+        if (document.documentElement.classList.contains('dark')) {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('color-theme', 'light');
+        } else {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('color-theme', 'dark');
+        }
+    });
+}
+
+
+// Tab switching functionality
+function switchTab(tabName) {
+    console.log('Switching to tab:', tabName);
+    
+    // Update tab buttons
+    const tabButtons = document.querySelectorAll('.tab-button');
+    tabButtons.forEach(button => {
+        if (button.getAttribute('data-tab') === tabName) {
+            button.classList.add('active', 'border-blue-500', 'text-blue-600');
+            button.classList.remove('border-transparent', 'text-gray-500');
+            // Add dark mode class for active state
+            button.classList.add('dark:text-blue-400', 'dark:border-blue-400');
+            button.classList.remove('dark:text-gray-400');
+        } else {
+            button.classList.remove('active', 'border-blue-500', 'text-blue-600', 'dark:text-blue-400', 'dark:border-blue-400');
+            button.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+        }
+    });
+    
+    // Update tab content visibility
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabContents.forEach(content => {
+        if (content.id === `${tabName}-tab`) {
+            content.classList.remove('hidden');
+            content.classList.add('active');
+        } else {
+            content.classList.add('hidden');
+            content.classList.remove('active');
+        }
+    });
+    
+    // Call Python tab switching handler if available
+    if (typeof switchTabPython !== 'undefined') {
+        switchTabPython(tabName);
+    }
+}
+
+function filterTableDropdown() {
+    const input = document.getElementById("table-dropdown");
+    const list = document.getElementById("table-dropdown-list");
+    const filter = input.value.toLowerCase();
+    list.innerHTML = "";
+    list.classList.remove("hidden");
+
+    const filteredOptions = tableOptions.filter(option =>
+        option.text.toLowerCase().includes(filter)
+    );
+
+    filteredOptions.forEach(option => {
+        const div = document.createElement("div");
+        div.classList.add("p-2", "cursor-pointer", "hover:bg-gray-200", "dark:hover:bg-gray-600", "dark:text-white");
+        div.textContent = option.text;
+        div.onclick = () => {
+            input.value = option.text;
+            list.classList.add("hidden");
+            updateFieldDropdown(option.id);
+        };
+        list.appendChild(div);
+    });
+
+    if (filteredOptions.length === 0) {
+        const noResultsDiv = document.createElement("div");
+        noResultsDiv.classList.add("p-2", "text-gray-500", "dark:text-gray-400");
+        noResultsDiv.textContent = "No tables found";
+        list.appendChild(noResultsDiv);
+    }
+}
+
+function filterFieldDropdown() {
+    const input = document.getElementById("field-dropdown");
+    const list = document.getElementById("field-dropdown-list");
+    const filter = input.value.toLowerCase();
+    list.innerHTML = "";
+    list.classList.remove("hidden");
+
+    const filteredOptions = fieldOptions.filter(option =>
+        option.text.toLowerCase().includes(filter)
+    );
+
+    filteredOptions.forEach(option => {
+        const div = document.createElement("div");
+        div.classList.add("p-2", "cursor-pointer", "hover:bg-gray-200", "dark:hover:bg-gray-600", "dark:text-white");
+        // Style the special option differently
+        if (option.id === "__TABLE_DEPENDENCIES__") {
+            div.classList.add("font-semibold", "text-blue-600", "dark:text-blue-400");
+        }
+        div.textContent = option.text;
+        div.onclick = () => {
+            input.value = option.text;
+            list.classList.add("hidden");
+            if (typeof updateMermaidGraph !== 'undefined') {
+                updateMermaidGraph(option.tableId, option.id, document.getElementById("flowchart-type").value);
+            }
+        };
+        list.appendChild(div);
+    });
+
+    if (filteredOptions.length === 0) {
+        const noResultsDiv = document.createElement("div");
+        noResultsDiv.classList.add("p-2", "text-gray-500", "dark:text-gray-400");
+        noResultsDiv.textContent = "No fields found";
+        list.appendChild(noResultsDiv);
+    }
+}
 
 async function fetchSchema() {
     const baseId = document.getElementById("base-id").value;
@@ -38,43 +237,86 @@ function updateSchemaInfo() {
     const tableDropdown = document.getElementById("table-dropdown");
     tableDropdown.innerHTML = "";
 
+    tableOptions = [];
+
     if (schemaData?.schema?.tables) {
         schemaData.schema.tables.forEach(table => {
-            const option = document.createElement("option");
-            option.value = table.id;
-            option.textContent = table.name;
-            tableDropdown.appendChild(option);
+            const option = {
+                id: table.id,
+                text: table.name
+            };
+            tableOptions.push(option);
         });
-
-        // Automatically update the field dropdown for the first table
-        if (schemaData.schema.tables.length > 0) {
-            tableDropdown.value = schemaData.schema.tables[0].id;
-            updateFieldDropdown();
-        }
+        
+        // Sort tables alphabetically
+        tableOptions.sort((a, b) => a.text.localeCompare(b.text));
+        
+        // Populate dropdown with sorted options
+        tableOptions.forEach(option => {
+            const div = document.createElement("div");
+            div.textContent = option.text;
+            div.onclick = () => {
+                tableDropdown.value = option.text;
+                document.getElementById("table-dropdown-list").classList.add("hidden");
+                updateFieldDropdown(option.id);
+            };
+            document.getElementById("table-dropdown-list").appendChild(div);
+        });
     }
+    
+    // Initialize compressor dropdowns
+    initializeCompressorDropdowns();
 }
 
-function updateFieldDropdown() {
+function updateFieldDropdown(tableId) {
     const schemaData = JSON.parse(localStorage.getItem("airtableSchema"));
-    const tableDropdown = document.getElementById("table-dropdown");
     const fieldDropdown = document.getElementById("field-dropdown");
-    const selectedTableId = tableDropdown.value;
+    
+    // Clear the field input value
+    fieldDropdown.value = "";
+    
+    fieldOptions = [];
 
-    fieldDropdown.innerHTML = "";
+    // Add special option for table dependencies
+    fieldOptions.push({
+        id: "__TABLE_DEPENDENCIES__",
+        text: "<Show Table Dependencies>",
+        tableId: tableId
+    });
 
     if (schemaData?.schema?.tables) {
-        const selectedTable = schemaData.schema.tables.find(table => table.id === selectedTableId);
+        const selectedTable = schemaData.schema.tables.find(table => table.id === tableId);
         selectedTable?.fields.forEach(field => {
-            const option = document.createElement("option");
-            option.value = field.id;
-            option.textContent = field.name;
-            fieldDropdown.appendChild(option);
+            const option = {
+                id: field.id,
+                text: field.name,
+                tableId: tableId
+            };
+            fieldOptions.push(option);
         });
-
-        // Automatically update the Mermaid diagram for the first field
-        if (selectedTable.fields.length > 0) {
-            fieldDropdown.value = selectedTable.fields[0].id;
-        }
+        
+        // Sort fields alphabetically (but keep the special option first)
+        const specialOption = fieldOptions.shift();
+        fieldOptions.sort((a, b) => a.text.localeCompare(b.text));
+        fieldOptions.unshift(specialOption);
+        
+        // Populate dropdown with sorted options
+        fieldOptions.forEach(option => {
+            const div = document.createElement("div");
+            div.textContent = option.text;
+            // Style the special option differently
+            if (option.id === "__TABLE_DEPENDENCIES__") {
+                div.classList.add("font-semibold", "text-blue-600", "dark:text-blue-400");
+            }
+            div.onclick = () => {
+                fieldDropdown.value = option.text;
+                document.getElementById("field-dropdown-list").classList.add("hidden");
+                if (typeof updateMermaidGraph !== 'undefined') {
+                    updateMermaidGraph(tableId, option.id, document.getElementById("flowchart-type").value);
+                }
+            };
+            document.getElementById("field-dropdown-list").appendChild(div);
+        });
     }
 }
 
@@ -213,9 +455,335 @@ function downloadMermaidText() {
     link.click();
 }
 
+// Formula Compressor functions
+function filterCompressorTableDropdown() {
+    const input = document.getElementById("compressor-table-dropdown");
+    const list = document.getElementById("compressor-table-dropdown-list");
+    const filter = input.value.toLowerCase();
+    list.innerHTML = "";
+    list.classList.remove("hidden");
+
+    const filteredOptions = compressorTableOptions.filter(option =>
+        option.text.toLowerCase().includes(filter)
+    );
+
+    filteredOptions.forEach(option => {
+        const div = document.createElement("div");
+        div.classList.add("p-2", "cursor-pointer", "hover:bg-gray-200", "dark:hover:bg-gray-600", "dark:text-white");
+        div.textContent = option.text;
+        div.onclick = () => {
+            input.value = option.text;
+            list.classList.add("hidden");
+            updateCompressorFieldDropdown(option.id);
+        };
+        list.appendChild(div);
+    });
+
+    if (filteredOptions.length === 0) {
+        const noResultsDiv = document.createElement("div");
+        noResultsDiv.classList.add("p-2", "text-gray-500", "dark:text-gray-400");
+        noResultsDiv.textContent = "No tables found";
+        list.appendChild(noResultsDiv);
+    }
+}
+
+function filterCompressorFieldDropdown() {
+    const input = document.getElementById("compressor-field-dropdown");
+    const list = document.getElementById("compressor-field-dropdown-list");
+    const filter = input.value.toLowerCase();
+    list.innerHTML = "";
+    list.classList.remove("hidden");
+
+    const filteredOptions = compressorFieldOptions.filter(option =>
+        option.text.toLowerCase().includes(filter)
+    );
+
+    filteredOptions.forEach(option => {
+        const div = document.createElement("div");
+        div.classList.add("p-2", "cursor-pointer", "hover:bg-gray-200", "dark:hover:bg-gray-600", "dark:text-white");
+        div.textContent = option.text;
+        div.onclick = () => {
+            input.value = option.text;
+            list.classList.add("hidden");
+            // Update the original formula display
+            updateOriginalFormulaDisplay(option.tableId, option.id, option.formula);
+        };
+        list.appendChild(div);
+    });
+
+    if (filteredOptions.length === 0) {
+        const noResultsDiv = document.createElement("div");
+        noResultsDiv.classList.add("p-2", "text-gray-500", "dark:text-gray-400");
+        noResultsDiv.textContent = "No formula fields found";
+        list.appendChild(noResultsDiv);
+    }
+}
+
+function updateCompressorFieldDropdown(tableId) {
+    const schemaData = JSON.parse(localStorage.getItem("airtableSchema"));
+    const fieldDropdown = document.getElementById("compressor-field-dropdown");
+    
+    // Clear the field input value
+    fieldDropdown.value = "";
+    
+    compressorFieldOptions = [];
+
+    if (schemaData?.schema?.tables) {
+        const selectedTable = schemaData.schema.tables.find(table => table.id === tableId);
+        selectedTable?.fields.forEach(field => {
+            // Only include formula fields
+            if (field.type === "formula") {
+                const option = {
+                    id: field.id,
+                    text: field.name,
+                    tableId: tableId,
+                    formula: field.options?.formula || ""
+                };
+                compressorFieldOptions.push(option);
+            }
+        });
+        
+        // Sort fields alphabetically
+        compressorFieldOptions.sort((a, b) => a.text.localeCompare(b.text));
+    }
+    
+    // Clear displays
+    document.getElementById("original-formula-display").innerHTML = '<span class="text-gray-500 dark:text-gray-400 italic">No formula selected</span>';
+    document.getElementById("compressed-formula-display").innerHTML = '<span class="text-gray-500 dark:text-gray-400 italic">Select a formula field to see compressed results</span>';
+    document.getElementById("copy-compressed-btn").disabled = true;
+}
+
+function updateOriginalFormulaDisplay(tableId, fieldId, formula) {
+    // Store the original formula (in field ID format)
+    originalFormulaText = formula || "";
+    
+    const originalDisplay = document.getElementById("original-formula-display");
+    
+    if (!originalFormulaText) {
+        originalDisplay.textContent = "No formula available";
+        return;
+    }
+    
+    // Get the current output format
+    const formatSelect = document.getElementById("output-format");
+    const outputFormat = formatSelect ? formatSelect.value : "field_ids";
+    
+    // Convert and display based on format
+    updateOriginalFormulaFormat(outputFormat);
+    
+    // Auto-compress the formula
+    autoCompressFormula();
+}
+
+function updateOriginalFormulaFormat(outputFormat) {
+    const originalDisplay = document.getElementById("original-formula-display");
+    
+    if (!originalFormulaText) {
+        return;
+    }
+    
+    // Call Python function to convert the formula
+    if (typeof window.convertFormulaDisplay !== 'undefined') {
+        const convertedFormula = window.convertFormulaDisplay(originalFormulaText, outputFormat);
+        
+        // Apply display formatting
+        const displayFormat = getDisplayFormat();
+        const formattedFormula = applyDisplayFormat(convertedFormula, displayFormat);
+        
+        originalDisplay.textContent = formattedFormula;
+    } else {
+        // Fallback if Python not ready
+        originalDisplay.textContent = originalFormulaText;
+    }
+}
+
+function onOutputFormatChange() {
+    const formatSelect = document.getElementById("output-format");
+    if (formatSelect && originalFormulaText) {
+        updateOriginalFormulaFormat(formatSelect.value);
+        autoCompressFormula();
+    }
+}
+
+function onDisplayFormatChange() {
+    // Re-format both original and compressed formulas
+    const formatSelect = document.getElementById("output-format");
+    if (formatSelect && originalFormulaText) {
+        updateOriginalFormulaFormat(formatSelect.value);
+    }
+    
+    // Re-format compressed formula if it exists
+    const compressedDisplay = document.getElementById("compressed-formula-display");
+    if (compressedDisplay && compressedDisplay.textContent && 
+        !compressedDisplay.textContent.includes("Select a formula field")) {
+        // Store and re-format the compressed formula
+        const rawText = compressedDisplay.getAttribute('data-raw-formula');
+        if (rawText) {
+            const displayFormat = getDisplayFormat();
+            const formattedFormula = applyDisplayFormat(rawText, displayFormat);
+            compressedDisplay.textContent = formattedFormula;
+        }
+    }
+}
+
+function getDisplayFormat() {
+    const displayFormatSelect = document.getElementById("display-format");
+    return displayFormatSelect ? displayFormatSelect.value : "compact";
+}
+
+function applyDisplayFormat(formula, displayFormat) {
+    if (displayFormat === "logical") {
+        if (typeof window.formatFormulaLogical !== 'undefined') {
+            return window.formatFormulaLogical(formula);
+        }
+    } else {
+        if (typeof window.formatFormulaCompact !== 'undefined') {
+            return window.formatFormulaCompact(formula);
+        }
+    }
+    return formula;
+}
+
+function compressFormula() {
+    const tableInput = document.getElementById("compressor-table-dropdown");
+    const fieldInput = document.getElementById("compressor-field-dropdown");
+    const depthInput = document.getElementById("compression-depth");
+    const formatSelect = document.getElementById("output-format");
+    const displayFormatSelect = document.getElementById("display-format");
+    
+    const tableName = tableInput.value.trim();
+    const fieldName = fieldInput.value.trim();
+    
+    if (!tableName || !fieldName) {
+        alert("Please select both a table and a field.");
+        return;
+    }
+    
+    // Get optional parameters
+    const depthValue = depthInput.value.trim();
+    const compressionDepth = depthValue ? parseInt(depthValue) : null;
+    const outputFormat = formatSelect.value;
+    const displayFormat = displayFormatSelect.value;
+    
+    // Call Python function
+    if (typeof window.compressFormulaFromUI !== 'undefined') {
+        window.compressFormulaFromUI(tableName, fieldName, compressionDepth, outputFormat, displayFormat);
+    } else {
+        alert("Formula compression is not yet initialized. Please refresh the page.");
+    }
+}
+
+function autoCompressFormula() {
+    const tableInput = document.getElementById("compressor-table-dropdown");
+    const fieldInput = document.getElementById("compressor-field-dropdown");
+    
+    const tableName = tableInput ? tableInput.value.trim() : "";
+    const fieldName = fieldInput ? fieldInput.value.trim() : "";
+    
+    // Only auto-compress if both table and field are selected
+    if (tableName && fieldName && originalFormulaText) {
+        compressFormula();
+    }
+}
+
+// Make function available globally for inline event handlers
+window.autoCompressFormula = autoCompressFormula;
+
+function copyCompressedFormula() {
+    const compressedDisplay = document.getElementById("compressed-formula-display");
+    const text = compressedDisplay.textContent;
+    
+    if (!text || text.includes("Select a formula field")) {
+        alert("No compressed formula to copy");
+        return;
+    }
+    
+    navigator.clipboard.writeText(text).then(() => {
+        alert("Compressed formula copied to clipboard");
+    }).catch(error => {
+        console.error("Error copying to clipboard:", error);
+        alert("Failed to copy compressed formula to clipboard");
+    });
+}
+
+function generateTableReport() {
+    const tableInput = document.getElementById("compressor-table-dropdown");
+    const depthInput = document.getElementById("compression-depth");
+    
+    const tableName = tableInput.value.trim();
+    
+    if (!tableName) {
+        alert("Please select a table.");
+        return;
+    }
+    
+    // Get compression depth
+    const depthValue = depthInput.value.trim();
+    const compressionDepth = depthValue ? parseInt(depthValue) : null;
+    
+    // Call Python function to generate CSV data
+    if (typeof window.generateTableReportData !== 'undefined') {
+        try {
+            const csvData = window.generateTableReportData(tableName, compressionDepth);
+            
+            // Download the CSV
+            const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            
+            // Create filename with table name and timestamp
+            const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
+            const filename = `${tableName}_formula_report_${timestamp}.csv`;
+            
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
+            link.style.visibility = "hidden";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            alert(`Table report generated successfully for "${tableName}"!`);
+        } catch (error) {
+            console.error("Error generating table report:", error);
+            alert(`Failed to generate table report: ${error.message || error}`);
+        }
+    } else {
+        alert("Table report generation is not yet initialized. Please refresh the page.");
+    }
+}
+
+function initializeCompressorDropdowns() {
+    const schemaData = JSON.parse(localStorage.getItem("airtableSchema"));
+    
+    compressorTableOptions = [];
+    compressorFieldOptions = [];
+
+    if (schemaData?.schema?.tables) {
+        schemaData.schema.tables.forEach(table => {
+            const option = {
+                id: table.id,
+                text: table.name
+            };
+            compressorTableOptions.push(option);
+        });
+        
+        // Sort tables alphabetically
+        compressorTableOptions.sort((a, b) => a.text.localeCompare(b.text));
+    }
+}
+
+// Export functions to window object so they can be called from HTML
 window.fetchSchema = fetchSchema;
 window.downloadMermaidSVG = downloadMermaidSVG;
 window.openInMermaidLive = openInMermaidLive;
 window.copyMermaidText = copyMermaidText;
 window.toggleFullscreen = toggleFullscreen;
 window.downloadMermaidText = downloadMermaidText;
+window.filterTableDropdown = filterTableDropdown;
+window.filterFieldDropdown = filterFieldDropdown;
+window.switchTab = switchTab;
+window.filterCompressorTableDropdown = filterCompressorTableDropdown;
+window.filterCompressorFieldDropdown = filterCompressorFieldDropdown;
+window.compressFormula = compressFormula;
+window.copyCompressedFormula = copyCompressedFormula;
+window.generateTableReport = generateTableReport;

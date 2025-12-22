@@ -6,6 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Airtable Mermaid Flowchart Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.0.4/pako.min.js"></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2025.2.3/core.css">
     <script type="module" src="https://pyscript.net/releases/2025.2.3/core.js"></script>
@@ -17,7 +22,7 @@
         #loading {
             outline: none;
             border: none;
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.95);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -27,6 +32,12 @@
             top: 0;
             left: 0;
             z-index: 1000;
+            transition: background 0.2s;
+        }
+
+        /* Dark mode styles for loading screen */
+        .dark #loading {
+            background: rgba(17, 24, 39, 0.95);
         }
 
         .spinner {
@@ -36,6 +47,11 @@
             width: 40px;
             height: 40px;
             animation: spin 1s linear infinite;
+        }
+
+        .dark .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: #60a5fa;
         }
 
         @keyframes spin {
@@ -52,6 +68,10 @@
             margin-left: 10px;
             font-size: 1.5rem;
             color: #3498db;
+        }
+
+        .dark .loading-text {
+            color: #60a5fa;
         }
     </style>
     <script type="module">
@@ -78,56 +98,289 @@
     <script src="script.js" type="module"></script>
 </head>
 
-<body class="p-6 bg-gray-100 font-sans">
+<body class="p-6 bg-gray-100 dark:bg-gray-900 font-sans transition-colors duration-200">
     <div id="loading">
         <div class="spinner"></div>
         <div class="loading-text">Loading...</div>
     </div>
 
-    <div class="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-md">
-        <h1 class="text-2xl font-bold mb-4">Airtable Mermaid Flowchart Generator</h1>
-        <label class="block mb-2" for="base-id">AirTable Base ID:</label>
-        <input class="w-full p-2 mb-4 border rounded" type="text" id="base-id" placeholder="Enter Base ID" />
+    <div class="max-w-6xl mx-auto">
+        <header class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6 transition-colors duration-200">
+            <div class="flex justify-between items-center mb-4">
+                <h1 class="text-3xl font-bold dark:text-white">Airtable Analysis Tools</h1>
+                <button id="theme-toggle" class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200" aria-label="Toggle dark mode">
+                    <svg id="theme-toggle-dark-icon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+                    </svg>
+                    <svg id="theme-toggle-light-icon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Common Configuration Section -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block mb-2 dark:text-gray-200" for="base-id">AirTable Base ID:</label>
+                    <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" type="text" id="base-id" placeholder="Enter Base ID" />
+                </div>
+                <div>
+                    <label class="block mb-2 dark:text-gray-200" for="pat">AirTable PAT:</label>
+                    <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" type="password" id="pat" placeholder="Enter PAT" />
+                </div>
+            </div>
 
-        <label class="block mb-2" for="pat">AirTable PAT:</label>
-        <input class="w-full p-2 mb-4 border rounded" type="password" id="pat" placeholder="Enter PAT" />
+            <button class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700" onclick="fetchSchema()">Refresh Schema</button>
+            <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm" id="last-refresh">Last Refresh: Not yet retrieved</p>
+        </header>
 
-        <label class="block mb-2" for="flowchart-type">Flowchart Type:</label>
-        <select class="w-full p-2 mb-4 border rounded" id="flowchart-type">
-            <option value="TD">Top Down</option>
-            <option value="LR">Left to Right</option>
-            <option value="RL">Right to Left</option>
-            <option value="BT">Bottom to Top</option>
-        </select>
+        <!-- Tab Navigation -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md mb-6 transition-colors duration-200">
+            <div class="border-b border-gray-200 dark:border-gray-700">
+                <nav class="flex -mb-px">
+                    <button class="tab-button active px-6 py-3 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400" 
+                            data-tab="dependency-mapper" onclick="switchTab('dependency-mapper')">
+                        Dependency Mapper
+                    </button>
+                    <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
+                            data-tab="dependency-analysis" onclick="switchTab('dependency-analysis')">
+                        Dependency Analysis
+                    </button>
+                    <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
+                            data-tab="formula-grapher" onclick="switchTab('formula-grapher')">
+                        Formula Grapher
+                    </button>
+                    <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
+                            data-tab="formula-compressor" onclick="switchTab('formula-compressor')">
+                        Formula Compressor
+                    </button>
+                </nav>
+            </div>
+        </div>
 
-        <button class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600" onclick="fetchSchema()">Refresh
-            Schema</button>
+        <!-- Tab Content Container -->
+        <div id="tab-content">
+            <!-- Dependency Mapper Tab (existing functionality) -->
+            <div id="dependency-mapper-tab" class="tab-content active bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md transition-colors duration-200">
 
-        <p class="mt-4 text-gray-600" id="last-refresh">Last Refresh: Not yet retrieved</p>
+                <h2 class="text-xl font-semibold mb-4 dark:text-white">Field Dependency Visualization</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">Visualize how fields depend on each other in your Airtable base.</p>
 
-        <label class="block mt-4" for="table-dropdown">Select Table:</label>
-        <select class="w-full p-2 border rounded" id="table-dropdown" onchange="updateFieldDropdown()">
-            <option value="">-- No Tables Available --</option>
-        </select>
+                <!-- Options Group -->
+                <div class="border-2 border-gray-300 dark:border-gray-600 rounded-lg p-4 mb-6">
+                    <h3 class="text-lg font-semibold mb-3 dark:text-white flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                        </svg>
+                        Options
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="flowchart-type">Flowchart Type:</label>
+                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="flowchart-type">
+                                <option value="TD">Top Down</option>
+                                <option value="LR">Left to Right</option>
+                                <option value="RL">Right to Left</option>
+                                <option value="BT">Bottom to Top</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="graph-direction">Graph Traversal:</label>
+                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="graph-direction">
+                                <option value="both">Both (Forward & Backward)</option>
+                                <option value="forward">Forward (Dependencies)</option>
+                                <option value="backward">Backward (Dependents)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="max-depth">Max Depth:</label>
+                            <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" type="number" id="max-depth" placeholder="Unlimited" min="1" />
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="description-display-mode">Display Mode:</label>
+                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="description-display-mode">
+                                <option value="simple">Simple Boxes</option>
+                                <option value="descriptions">Show Descriptions</option>
+                                <option value="formulas">Show Formulas</option>
+                                <option value="all">Show All</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
 
-        <label class="block mt-4" for="field-dropdown">Select Field:</label>
-        <select class="w-full p-2 border rounded" id="field-dropdown">
-            <option value="">-- No Fields Available --</option>
-        </select>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block mb-2 dark:text-gray-200" for="table-dropdown">Select Table:</label>
+                        <div class="relative">
+                            <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" type="text" id="table-dropdown" 
+                                   placeholder="Search for a table" 
+                                   oninput="filterTableDropdown()" 
+                                   onfocus="filterTableDropdown()" 
+                                   autocomplete="off">
+                            <div class="absolute bg-white dark:bg-gray-700 border dark:border-gray-600 rounded mt-1 w-full max-h-60 overflow-auto z-10 hidden" id="table-dropdown-list"></div>
+                        </div>
+                    </div>
 
-        <div class="mt-6 p-4 bg-gray-200 rounded-lg" id="mermaid-container"></div>
-        <div class="flex mt-4 gap-2">
-            <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600"
-                onclick="downloadMermaidSVG()">Download SVG</button>
-            <button class="bg-purple-500 text-white py-2 px-4 rounded hover:bg-purple-600"
-                onclick="openInMermaidLive()">Open in Mermaid Live</button>
-            <!-- copy mermaid graph definition to clipboard -->
-            <button class="bg-indigo-500 text-white py-2 px-4 rounded hover:bg-indigo-600"
-                onclick="copyMermaidText()">Copy Mermaid Graph Definition</button>
-            <button class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
-                onclick="toggleFullscreen()">Fullscreen</button>
-            <button class="bg-yellow-500 text-white py-2 px-4 rounded hover:bg-yellow-600"
-                onclick="downloadMermaidText()">Download Mermaid Text</button>
+                    <div>
+                        <label class="block mb-2 dark:text-gray-200" for="field-dropdown">Select Field:</label>
+                        <div class="relative">
+                            <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" type="text" id="field-dropdown" 
+                                   placeholder="Search for a field" 
+                                   oninput="filterFieldDropdown()" 
+                                   onfocus="filterFieldDropdown()" 
+                                   autocomplete="off">
+                            <div class="absolute bg-white dark:bg-gray-700 border dark:border-gray-600 rounded mt-1 w-full max-h-60 overflow-auto z-10 hidden" id="field-dropdown-list"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 p-4 bg-gray-200 dark:bg-gray-700 rounded-lg" id="mermaid-container"></div>
+                <div class="flex flex-wrap mt-4 gap-2">
+                    <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600"
+                        onclick="downloadMermaidSVG()">Download SVG</button>
+                    <button class="bg-purple-500 text-white py-2 px-4 rounded hover:bg-purple-600"
+                        onclick="openInMermaidLive()">Open in Mermaid Live</button>
+                    <button class="bg-indigo-500 text-white py-2 px-4 rounded hover:bg-indigo-600"
+                        onclick="copyMermaidText()">Copy Mermaid Graph Definition</button>
+                    <button class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+                        onclick="toggleFullscreen()">Fullscreen</button>
+                    <button class="bg-yellow-500 text-white py-2 px-4 rounded hover:bg-yellow-600"
+                        onclick="downloadMermaidText()">Download Mermaid Text</button>
+                </div>
+            </div>
+
+            <!-- Dependency Analysis Tab -->
+            <div id="dependency-analysis-tab" class="tab-content hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md transition-colors duration-200">
+                <h2 class="text-xl font-semibold mb-4 dark:text-white">Dependency Analysis</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">Analyze dependency complexity and identify potential issues in your base structure.</p>
+                <p class="text-gray-500 dark:text-gray-500 italic">Coming soon...</p>
+            </div>
+
+            <!-- Formula Grapher Tab -->
+            <div id="formula-grapher-tab" class="tab-content hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md transition-colors duration-200">
+                <h2 class="text-xl font-semibold mb-4 dark:text-white">Formula Grapher</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">Visualize and analyze formula structures and their dependencies.</p>
+                <p class="text-gray-500 dark:text-gray-500 italic">Coming soon...</p>
+            </div>
+
+            <!-- Formula Compressor Tab -->
+            <div id="formula-compressor-tab" class="tab-content hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md transition-colors duration-200">
+                <h2 class="text-xl font-semibold mb-4 dark:text-white">Formula Compressor</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">Optimize and compress complex Airtable formulas by replacing field references with their formulas.</p>
+
+                <!-- Required Parameters -->
+                <div class="border-2 border-gray-300 dark:border-gray-600 rounded-lg p-4 mb-4">
+                    <h3 class="text-lg font-semibold mb-3 dark:text-white flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                        Required Parameters
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="compressor-table-dropdown">Select Table:</label>
+                            <div class="relative">
+                                <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                                       type="text" 
+                                       id="compressor-table-dropdown" 
+                                       placeholder="Search for a table" 
+                                       oninput="filterCompressorTableDropdown()" 
+                                       onfocus="filterCompressorTableDropdown()" 
+                                       autocomplete="off">
+                                <div class="absolute bg-white dark:bg-gray-700 border dark:border-gray-600 rounded mt-1 w-full max-h-60 overflow-auto z-10 hidden" 
+                                     id="compressor-table-dropdown-list"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="compressor-field-dropdown">Select Formula Field:</label>
+                            <div class="relative">
+                                <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                                       type="text" 
+                                       id="compressor-field-dropdown" 
+                                       placeholder="Search for a field" 
+                                       oninput="filterCompressorFieldDropdown()" 
+                                       onfocus="filterCompressorFieldDropdown()" 
+                                       autocomplete="off">
+                                <div class="absolute bg-white dark:bg-gray-700 border dark:border-gray-600 rounded mt-1 w-full max-h-60 overflow-auto z-10 hidden" 
+                                     id="compressor-field-dropdown-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Optional Parameters -->
+                <div class="border-2 border-gray-300 dark:border-gray-600 rounded-lg p-4 mb-4">
+                    <h3 class="text-lg font-semibold mb-3 dark:text-white flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                        </svg>
+                        Optional Parameters
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="compression-depth">Compression Depth:</label>
+                            <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                                   type="number" 
+                                   id="compression-depth" 
+                                   placeholder="Unlimited (leave empty)" 
+                                   min="0"
+                                   oninput="autoCompressFormula()">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">How many levels deep to compress. Leave empty for full compression.</p>
+                        </div>
+
+                        <div>
+                            <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="output-format">Output Format:</label>
+                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="output-format" onchange="autoCompressFormula()">
+                                <option value="field_ids">Field IDs (e.g., {fldXXX})</option>
+                                <option value="field_names">Field Names (e.g., {Field Name})</option>
+                            </select>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Format for field references in output.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="display-format">Display Format:</label>
+                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="display-format">
+                                <option value="compact">Compact (single line)</option>
+                                <option value="logical">Logical (indented)</option>
+                            </select>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">How to format the displayed formula.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 mb-4">
+                    <button class="flex-1 bg-green-500 text-white py-2 rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700" 
+                            onclick="generateTableReport()">Table Report</button>
+                </div>
+
+                <!-- Output Display -->
+                <div class="mt-6">
+                    <h3 class="text-lg font-semibold mb-2 dark:text-white">Original Formula:</h3>
+                    <div class="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg mb-4 font-mono text-sm overflow-x-auto whitespace-pre-wrap" 
+                         id="original-formula-display">
+                        <span class="text-gray-500 dark:text-gray-400 italic">No formula selected</span>
+                    </div>
+
+                    <h3 class="text-lg font-semibold mb-2 dark:text-white">Compressed Formula:</h3>
+                    <div class="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg mb-2 font-mono text-sm overflow-x-auto whitespace-pre-wrap" 
+                         id="compressed-formula-display">
+                        <span class="text-gray-500 dark:text-gray-400 italic">Select a formula field to see compressed results</span>
+                    </div>
+                    
+                    <button class="bg-indigo-500 text-white py-2 px-4 rounded hover:bg-indigo-600" 
+                            onclick="copyCompressedFormula()" 
+                            id="copy-compressed-btn" 
+                            disabled>
+                        Copy Compressed Formula
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </body>
