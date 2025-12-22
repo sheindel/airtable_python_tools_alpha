@@ -108,14 +108,7 @@
         <header class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6 transition-colors duration-200">
             <div class="flex justify-between items-center mb-4">
                 <h1 class="text-3xl font-bold dark:text-white">Airtable Analysis Tools</h1>
-                <button id="theme-toggle" class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200" aria-label="Toggle dark mode">
-                    <svg id="theme-toggle-dark-icon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
-                    </svg>
-                    <svg id="theme-toggle-light-icon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path>
-                    </svg>
-                </button>
+                <at-theme-toggle id="theme-toggle"></at-theme-toggle>
             </div>
             
             <!-- Common Configuration Section -->
@@ -130,44 +123,45 @@
                 </div>
             </div>
 
-            <button class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700" onclick="fetchSchema()">Refresh Schema</button>
+            <button class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700" data-action="fetch-schema">Refresh Schema</button>
             <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm" id="last-refresh">Last Refresh: Not yet retrieved</p>
         </header>
 
-        <!-- Tab Navigation -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md mb-6 transition-colors duration-200">
-            <div class="border-b border-gray-200 dark:border-gray-700">
-                <nav class="flex -mb-px">
-                    <button class="tab-button active px-6 py-3 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400" 
-                            data-tab="dependency-mapper" onclick="switchTab('dependency-mapper')">
-                        Dependency Mapper
-                    </button>
-                    <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
-                            data-tab="dependency-analysis" onclick="switchTab('dependency-analysis')">
-                        Table Analysis
-                    </button>
-                    <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
-                            data-tab="formula-grapher" onclick="switchTab('formula-grapher')">
-                        Formula Grapher
-                    </button>
-                    <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
-                            data-tab="formula-compressor" onclick="switchTab('formula-compressor')">
-                        Formula Compressor
-                    </button>
-                    <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
-                            data-tab="complexity-scorecard" onclick="switchTab('complexity-scorecard')">
-                        Complexity Scorecard
-                    </button>
-                    <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
-                            data-tab="unused-fields" onclick="switchTab('unused-fields')">
-                        Unused Fields
-                    </button>
-                </nav>
+        <at-tab-manager active="dependency-mapper">
+            <!-- Tab Navigation -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md mb-6 transition-colors duration-200">
+                <div class="border-b border-gray-200 dark:border-gray-700">
+                    <nav class="flex -mb-px">
+                        <button class="tab-button active px-6 py-3 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400" 
+                                data-tab="dependency-mapper">
+                            Dependency Mapper
+                        </button>
+                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
+                                data-tab="dependency-analysis">
+                            Table Analysis
+                        </button>
+                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
+                                data-tab="formula-grapher">
+                            Formula Grapher
+                        </button>
+                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
+                                data-tab="formula-compressor">
+                            Formula Compressor
+                        </button>
+                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
+                                data-tab="complexity-scorecard">
+                            Complexity Scorecard
+                        </button>
+                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
+                                data-tab="unused-fields">
+                            Unused Fields
+                        </button>
+                    </nav>
+                </div>
             </div>
-        </div>
 
-        <!-- Tab Content Container -->
-        <div id="tab-content">
+            <!-- Tab Content Container -->
+            <div id="tab-content">
             <!-- Dependency Mapper Tab (existing functionality) -->
             <div id="dependency-mapper-tab" class="tab-content active bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md transition-colors duration-200">
 
@@ -177,27 +171,11 @@
                 <!-- Table/Field Selection -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
-                        <label class="block mb-2 dark:text-gray-200" for="table-dropdown">Select Table:</label>
-                        <div class="relative">
-                            <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" type="text" id="table-dropdown" 
-                                   placeholder="Search for a table" 
-                                   oninput="filterTableDropdown()" 
-                                   onfocus="filterTableDropdown()" 
-                                   autocomplete="off">
-                            <div class="absolute bg-white dark:bg-gray-700 border dark:border-gray-600 rounded mt-1 w-full max-h-60 overflow-auto z-10 hidden" id="table-dropdown-list"></div>
-                        </div>
+                        <at-dropdown id="table-dropdown" label="Select Table:" placeholder="Search for a table"></at-dropdown>
                     </div>
 
                     <div>
-                        <label class="block mb-2 dark:text-gray-200" for="field-dropdown">Select Field:</label>
-                        <div class="relative">
-                            <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" type="text" id="field-dropdown" 
-                                   placeholder="Search for a field" 
-                                   oninput="filterFieldDropdown()" 
-                                   onfocus="filterFieldDropdown()" 
-                                   autocomplete="off">
-                            <div class="absolute bg-white dark:bg-gray-700 border dark:border-gray-600 rounded mt-1 w-full max-h-60 overflow-auto z-10 hidden" id="field-dropdown-list"></div>
-                        </div>
+                        <at-dropdown id="field-dropdown" label="Select Field:" placeholder="Search for a field"></at-dropdown>
                     </div>
                 </div>
 
@@ -246,8 +224,8 @@
 
                 <div class="relative mt-6">
                     <div class="p-4 bg-gray-200 dark:bg-gray-700 rounded-lg" id="mermaid-container"></div>
-                    <button class="absolute top-2 right-2 p-2 rounded bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 shadow-md transition-all opacity-0 hover:opacity-100 focus:opacity-100" 
-                            onclick="copyMermaidText()"
+                        <button class="absolute top-2 right-2 p-2 rounded bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 shadow-md transition-all opacity-0 hover:opacity-100 focus:opacity-100" 
+                            data-action="copy-mermaid"
                             title="Copy mermaid code"
                             style="backdrop-filter: blur(4px);">
                         <svg class="w-4 h-4 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -256,16 +234,11 @@
                     </button>
                 </div>
                 <div class="flex flex-wrap mt-4 gap-2">
-                    <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600"
-                        onclick="downloadMermaidSVG()">Download SVG</button>
-                    <button class="bg-purple-500 text-white py-2 px-4 rounded hover:bg-purple-600"
-                        onclick="openInMermaidLive()">Open in Mermaid Live</button>
-                    <button class="bg-indigo-500 text-white py-2 px-4 rounded hover:bg-indigo-600"
-                        onclick="copyMermaidText()">Copy Mermaid Graph Definition</button>
-                    <button class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
-                        onclick="toggleFullscreen()">Fullscreen</button>
-                    <button class="bg-yellow-500 text-white py-2 px-4 rounded hover:bg-yellow-600"
-                        onclick="downloadMermaidText()">Download Mermaid Text</button>
+                    <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600" data-action="download-mermaid-svg">Download SVG</button>
+                    <button class="bg-purple-500 text-white py-2 px-4 rounded hover:bg-purple-600" data-action="open-mermaid-live">Open in Mermaid Live</button>
+                    <button class="bg-indigo-500 text-white py-2 px-4 rounded hover:bg-indigo-600" data-action="copy-mermaid">Copy Mermaid Graph Definition</button>
+                    <button class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600" data-action="toggle-mermaid-fullscreen">Fullscreen</button>
+                    <button class="bg-yellow-500 text-white py-2 px-4 rounded hover:bg-yellow-600" data-action="download-mermaid-text">Download Mermaid Text</button>
                 </div>
             </div>
 
@@ -276,22 +249,14 @@
                 
                 <!-- Table Selection -->
                 <div class="mb-4">
-                    <label class="block mb-2 dark:text-gray-200" for="analysis-table-dropdown">Select Table:</label>
-                    <div class="relative">
-                        <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" type="text" id="analysis-table-dropdown" 
-                               placeholder="Search for a table" 
-                               oninput="filterAnalysisTableDropdown()" 
-                               onfocus="filterAnalysisTableDropdown()" 
-                               autocomplete="off">
-                        <div class="absolute bg-white dark:bg-gray-700 border dark:border-gray-600 rounded mt-1 w-full max-h-60 overflow-auto z-10 hidden" id="analysis-table-dropdown-list"></div>
-                    </div>
+                    <at-dropdown id="analysis-table-dropdown" label="Select Table:" placeholder="Search for a table"></at-dropdown>
                 </div>
                 
                 <!-- Action Button -->
                 <div class="mb-4">
                     <button id="generate-table-complexity-btn" 
                             class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                            onclick="generateTableComplexityCSV()" 
+                            data-action="generate-table-complexity" 
                             disabled>
                         Field -> Table Dependencies
                     </button>
@@ -304,8 +269,7 @@
                         <pre id="analysis-csv-output" class="text-sm overflow-x-auto dark:text-gray-200"></pre>
                     </div>
                     <div class="mt-4">
-                        <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600"
-                                onclick="downloadTableComplexityCSV()">
+                        <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600" data-action="download-table-complexity">
                             Download CSV
                         </button>
                     </div>
@@ -320,27 +284,11 @@
                 <!-- Table/Field Selection -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
-                        <label class="block mb-2 dark:text-gray-200" for="grapher-table-dropdown">Select Table:</label>
-                        <div class="relative">
-                            <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" type="text" id="grapher-table-dropdown" 
-                                   placeholder="Search for a table" 
-                                   oninput="filterGrapherTableDropdown()" 
-                                   onfocus="filterGrapherTableDropdown()" 
-                                   autocomplete="off">
-                            <div class="absolute bg-white dark:bg-gray-700 border dark:border-gray-600 rounded mt-1 w-full max-h-60 overflow-auto z-10 hidden" id="grapher-table-dropdown-list"></div>
-                        </div>
+                        <at-dropdown id="grapher-table-dropdown" label="Select Table:" placeholder="Search for a table"></at-dropdown>
                     </div>
 
                     <div>
-                        <label class="block mb-2 dark:text-gray-200" for="grapher-field-dropdown">Select Formula Field:</label>
-                        <div class="relative">
-                            <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" type="text" id="grapher-field-dropdown" 
-                                   placeholder="Search for a formula field" 
-                                   oninput="filterGrapherFieldDropdown()" 
-                                   onfocus="filterGrapherFieldDropdown()" 
-                                   autocomplete="off">
-                            <div class="absolute bg-white dark:bg-gray-700 border dark:border-gray-600 rounded mt-1 w-full max-h-60 overflow-auto z-10 hidden" id="grapher-field-dropdown-list"></div>
-                        </div>
+                        <at-dropdown id="grapher-field-dropdown" label="Select Formula Field:" placeholder="Search for a formula field"></at-dropdown>
                     </div>
                 </div>
 
@@ -391,8 +339,8 @@
                     <div class="p-4 bg-gray-200 dark:bg-gray-700 rounded-lg min-h-[300px]" id="formula-grapher-mermaid-container">
                         <span class="text-gray-500 dark:text-gray-400 italic">Select a formula field to generate flowchart</span>
                     </div>
-                    <button class="absolute top-2 right-2 p-2 rounded bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 shadow-md transition-all opacity-0 hover:opacity-100 focus:opacity-100" 
-                            onclick="copyFormulaGrapherMermaidText()"
+                        <button class="absolute top-2 right-2 p-2 rounded bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 shadow-md transition-all opacity-0 hover:opacity-100 focus:opacity-100" 
+                            data-action="copy-grapher-mermaid"
                             title="Copy mermaid code"
                             style="backdrop-filter: blur(4px);">
                         <svg class="w-4 h-4 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -403,14 +351,10 @@
 
                 <!-- Action Buttons -->
                 <div class="flex flex-wrap mt-4 gap-2">
-                    <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600"
-                        onclick="downloadFormulaGrapherSVG()">Download SVG</button>
-                    <button class="bg-purple-500 text-white py-2 px-4 rounded hover:bg-purple-600"
-                        onclick="openFormulaGrapherInMermaidLive()">Open in Mermaid Live</button>
-                    <button class="bg-indigo-500 text-white py-2 px-4 rounded hover:bg-indigo-600"
-                        onclick="copyFormulaGrapherMermaidText()">Copy Mermaid Definition</button>
-                    <button class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
-                        onclick="toggleFormulaGrapherFullscreen()">Fullscreen</button>
+                    <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600" data-action="download-grapher-svg">Download SVG</button>
+                    <button class="bg-purple-500 text-white py-2 px-4 rounded hover:bg-purple-600" data-action="open-grapher-live">Open in Mermaid Live</button>
+                    <button class="bg-indigo-500 text-white py-2 px-4 rounded hover:bg-indigo-600" data-action="copy-grapher-mermaid">Copy Mermaid Definition</button>
+                    <button class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600" data-action="toggle-grapher-fullscreen">Fullscreen</button>
                 </div>
             </div>
 
@@ -422,33 +366,11 @@
                 <!-- Table/Field Selection -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="compressor-table-dropdown">Select Table:</label>
-                            <div class="relative">
-                                <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
-                                       type="text" 
-                                       id="compressor-table-dropdown" 
-                                       placeholder="Search for a table" 
-                                       oninput="filterCompressorTableDropdown()" 
-                                       onfocus="filterCompressorTableDropdown()" 
-                                       autocomplete="off">
-                                <div class="absolute bg-white dark:bg-gray-700 border dark:border-gray-600 rounded mt-1 w-full max-h-60 overflow-auto z-10 hidden" 
-                                     id="compressor-table-dropdown-list"></div>
-                            </div>
+                            <at-dropdown id="compressor-table-dropdown" label="Select Table:" placeholder="Search for a table"></at-dropdown>
                         </div>
 
                         <div>
-                            <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="compressor-field-dropdown">Select Formula Field:</label>
-                            <div class="relative">
-                                <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
-                                       type="text" 
-                                       id="compressor-field-dropdown" 
-                                       placeholder="Search for a field" 
-                                       oninput="filterCompressorFieldDropdown()" 
-                                       onfocus="filterCompressorFieldDropdown()" 
-                                       autocomplete="off">
-                                <div class="absolute bg-white dark:bg-gray-700 border dark:border-gray-600 rounded mt-1 w-full max-h-60 overflow-auto z-10 hidden" 
-                                     id="compressor-field-dropdown-list"></div>
-                            </div>
+                            <at-dropdown id="compressor-field-dropdown" label="Select Formula Field:" placeholder="Search for a field"></at-dropdown>
                         </div>
                 </div>
 
@@ -496,9 +418,9 @@
                 </div>
 
                 <div class="mb-4">
-                    <button class="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed dark:disabled:bg-gray-600" 
+                        <button class="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed dark:disabled:bg-gray-600" 
                             id="table-report-btn"
-                            onclick="generateTableReport()"
+                            data-action="generate-table-report"
                             disabled>All Table Formulas Compressed (CSV)</button>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Generate a CSV report of all formula fields in the selected table with compressed versions.</p>
                 </div>
@@ -512,7 +434,7 @@
                             <span class="text-gray-500 dark:text-gray-400 italic">No formula selected</span>
                         </div>
                         <button class="absolute top-2 right-2 p-2 rounded bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 shadow-md transition-all opacity-0 hover:opacity-100 focus:opacity-100" 
-                                onclick="copyToClipboard('original-formula-display', 'Original formula', event)"
+                            data-action="copy-to-clipboard" data-target="original-formula-display" data-description="Original formula"
                                 title="Copy to clipboard"
                                 style="backdrop-filter: blur(4px);">
                             <svg class="w-4 h-4 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -528,7 +450,7 @@
                             <span class="text-gray-500 dark:text-gray-400 italic">Select a formula field to see compressed results</span>
                         </div>
                         <button class="absolute top-2 right-2 p-2 rounded bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 shadow-md transition-all opacity-0 hover:opacity-100 focus:opacity-100" 
-                                onclick="copyToClipboard('compressed-formula-display', 'Compressed formula', event)"
+                            data-action="copy-to-clipboard" data-target="compressed-formula-display" data-description="Compressed formula"
                                 title="Copy to clipboard"
                                 style="backdrop-filter: blur(4px);">
                             <svg class="w-4 h-4 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -576,7 +498,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="scorecard-table-filter">Filter by Table:</label>
-                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="scorecard-table-filter" onchange="refreshComplexityScorecard()">
+                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="scorecard-table-filter" data-change-action="scorecard-filter">
                                 <option value="">All Tables</option>
                             </select>
                         </div>
@@ -588,11 +510,11 @@
                                    placeholder="0" 
                                    min="0" 
                                    value="0"
-                                   onchange="refreshComplexityScorecard()">
+                                   data-change-action="scorecard-filter">
                         </div>
                         <div class="flex items-end">
                             <button class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700"
-                                    onclick="refreshComplexityScorecard()">
+                                    data-action="refresh-scorecard">
                                 Refresh Scorecard
                             </button>
                         </div>
@@ -604,26 +526,26 @@
                     <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                         <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-300">
                             <tr>
-                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortScorecardBy('complexity_score')">
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" data-action="sort-scorecard" data-field="complexity_score">
                                     Score ↕
                                 </th>
-                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortScorecardBy('table_name')">
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" data-action="sort-scorecard" data-field="table_name">
                                     Table ↕
                                 </th>
-                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortScorecardBy('field_name')">
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" data-action="sort-scorecard" data-field="field_name">
                                     Field ↕
                                 </th>
                                 <th scope="col" class="px-4 py-3">Type</th>
-                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortScorecardBy('max_depth')">
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" data-action="sort-scorecard" data-field="max_depth">
                                     Depth ↕
                                 </th>
-                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortScorecardBy('backward_deps')">
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" data-action="sort-scorecard" data-field="backward_deps">
                                     ← Deps ↕
                                 </th>
-                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortScorecardBy('forward_deps')">
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" data-action="sort-scorecard" data-field="forward_deps">
                                     → Deps ↕
                                 </th>
-                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortScorecardBy('cross_table_deps')">
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" data-action="sort-scorecard" data-field="cross_table_deps">
                                     X-Table ↕
                                 </th>
                             </tr>
@@ -640,8 +562,8 @@
                 
                 <!-- Export Button -->
                 <div class="mt-4 flex gap-2">
-                    <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700"
-                            onclick="downloadComplexityCSV()">
+                        <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700"
+                            data-action="download-scorecard-csv">
                         Download CSV
                     </button>
                 </div>
@@ -684,19 +606,19 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="unused-table-filter">Filter by Table:</label>
-                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="unused-table-filter" onchange="refreshUnusedFields()">
+                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="unused-table-filter" data-change-action="unused-filter">
                                 <option value="">All Tables</option>
                             </select>
                         </div>
                         <div>
                             <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="unused-type-filter">Filter by Type:</label>
-                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="unused-type-filter" onchange="refreshUnusedFields()">
+                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="unused-type-filter" data-change-action="unused-filter">
                                 <option value="">All Types</option>
                             </select>
                         </div>
                         <div class="flex items-end">
                             <button class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700"
-                                    onclick="refreshUnusedFields()">
+                                    data-action="refresh-unused">
                                 Scan for Unused Fields
                             </button>
                         </div>
@@ -708,16 +630,16 @@
                     <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                         <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-300">
                             <tr>
-                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortUnusedBy('table_name')">
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" data-action="sort-unused" data-field="table_name">
                                     Table ↕
                                 </th>
-                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortUnusedBy('field_name')">
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" data-action="sort-unused" data-field="field_name">
                                     Field ↕
                                 </th>
-                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortUnusedBy('field_type')">
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" data-action="sort-unused" data-field="field_type">
                                     Type ↕
                                 </th>
-                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" onclick="sortUnusedBy('outbound_count')">
+                                <th scope="col" class="px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600" data-action="sort-unused" data-field="outbound_count">
                                     Outbound Refs ↕
                                 </th>
                                 <th scope="col" class="px-4 py-3">Status</th>
@@ -745,13 +667,14 @@
                 
                 <!-- Export Button -->
                 <div class="mt-4 flex gap-2">
-                    <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700"
-                            onclick="downloadUnusedFieldsCSV()">
+                        <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700"
+                            data-action="download-unused-csv">
                         Download CSV
                     </button>
                 </div>
             </div>
         </div>
+        </at-tab-manager>
     </div>
 </body>
 
