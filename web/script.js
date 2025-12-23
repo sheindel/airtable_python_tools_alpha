@@ -98,6 +98,45 @@ addEventListener('py:ready', () => {
     if (displayFormatSelect) {
         displayFormatSelect.addEventListener("change", onDisplayFormatChange);
     }
+    
+    // Wire up dependency mapper controls to call Python function
+    const dependencyMapperControls = [
+        'field-dropdown',
+        'flowchart-type',
+        'graph-direction',
+        'description-display-mode'
+    ];
+    
+    dependencyMapperControls.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('change', () => {
+                try {
+                    if (window.parametersChanged) {
+                        console.log(`Calling parametersChanged from ${id}`);
+                        window.parametersChanged();
+                    }
+                } catch (error) {
+                    console.error('Error calling parametersChanged:', error);
+                }
+            });
+        }
+    });
+    
+    // Max depth uses 'input' event instead of 'change'
+    const maxDepthInput = document.getElementById('max-depth');
+    if (maxDepthInput) {
+        maxDepthInput.addEventListener('input', () => {
+            try {
+                if (window.parametersChanged) {
+                    console.log('Calling parametersChanged from max-depth');
+                    window.parametersChanged();
+                }
+            } catch (error) {
+                console.error('Error calling parametersChanged:', error);
+            }
+        });
+    }
 });
 
 let fieldOptions = [];
@@ -152,12 +191,20 @@ function wireDropdowns() {
 
     if (tableDropdown) {
         tableDropdown.addEventListener('select', (event) => {
-            updateFieldDropdown(event.detail.id);
+            if (event.detail && event.detail.id) {
+                updateFieldDropdown(event.detail.id);
+            }
         });
     }
 
     if (fieldDropdown) {
         fieldDropdown.addEventListener('select', (event) => {
+            console.log(event);
+            console.log(JSON.stringify(event));
+            if (!event.detail || !event.detail.tableId || !event.detail.id) {
+                console.warn('Field dropdown event missing required properties:', event.detail);
+                return;
+            }
             const flowchartType = document.getElementById("flowchart-type")?.value || "TD";
             if (typeof updateMermaidGraph !== 'undefined') {
                 updateMermaidGraph(event.detail.tableId, event.detail.id, flowchartType);
@@ -167,17 +214,21 @@ function wireDropdowns() {
 
     if (compressorTableDropdown) {
         compressorTableDropdown.addEventListener('select', (event) => {
-            updateCompressorFieldDropdown(event.detail.id);
-            const tableReportBtn = document.getElementById("table-report-btn");
-            if (tableReportBtn) {
-                tableReportBtn.disabled = false;
+            if (event.detail && event.detail.id) {
+                updateCompressorFieldDropdown(event.detail.id);
+                const tableReportBtn = document.getElementById("table-report-btn");
+                if (tableReportBtn) {
+                    tableReportBtn.disabled = false;
+                }
             }
         });
     }
 
     if (compressorFieldDropdown) {
         compressorFieldDropdown.addEventListener('select', (event) => {
-            updateOriginalFormulaDisplay(event.detail.tableId, event.detail.id, event.detail.formula);
+            if (event.detail && event.detail.tableId && event.detail.id) {
+                updateOriginalFormulaDisplay(event.detail.tableId, event.detail.id, event.detail.formula);
+            }
         });
     }
 
@@ -192,13 +243,17 @@ function wireDropdowns() {
 
     if (grapherTableDropdown) {
         grapherTableDropdown.addEventListener('select', (event) => {
-            updateGrapherFieldDropdown(event.detail.id);
+            if (event.detail && event.detail.id) {
+                updateGrapherFieldDropdown(event.detail.id);
+            }
         });
     }
 
     if (grapherFieldDropdown) {
         grapherFieldDropdown.addEventListener('select', (event) => {
-            onGrapherFieldSelected(event.detail.tableName, event.detail.text);
+            if (event.detail && event.detail.tableName && event.detail.text) {
+                onGrapherFieldSelected(event.detail.tableName, event.detail.text);
+            }
         });
     }
 }

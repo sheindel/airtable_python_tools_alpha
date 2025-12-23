@@ -1,13 +1,12 @@
 """Dependency Mapper Tab - Visualize field dependencies in Airtable base"""
 from pyscript import document, window
-from pyodide.ffi.wrappers import add_event_listener
 from collections import defaultdict
 
 import sys
 sys.path.append("web")
-from components.airtable_client import get_local_storage, save_local_storage, get_local_storage_metadata
+from components.airtable_client import save_local_storage, get_local_storage_metadata
 from airtable_mermaid_generator import get_node_id
-from at_metadata_graph import get_reachable_nodes_advanced, metadata_to_graph, get_reachable_nodes, get_reachable_nodes_depth, graph_to_mermaid
+from at_metadata_graph import metadata_to_graph, get_reachable_nodes, get_reachable_nodes_depth, graph_to_mermaid
 
 
 def generate_table_dependency_graph(
@@ -114,131 +113,126 @@ def generate_table_dependency_graph(
     return mermaid_diagram
 
 
-def update_mermaid_graph(
-    table_id: str,
-    field_id: str,
-    flowchart_type: str,
-):
+def update_mermaid_graph(table_id: str, field_id: str, flowchart_type: str):
     """Generate and display a Mermaid diagram for field dependencies"""
-    print(f"Table ID: {table_id}, Field ID: {field_id}")
-    
-    # Check if this is the special table dependencies request
-    if field_id == "__TABLE_DEPENDENCIES__":
-        mermaid_text = generate_table_dependency_graph(table_id, flowchart_type)
+    try:
+        if not table_id or not field_id:
+            return
+        
+        # Check if this is the special table dependencies request
+        if field_id == "__TABLE_DEPENDENCIES__":
+            mermaid_text = generate_table_dependency_graph(table_id, flowchart_type)
+            save_local_storage("lastGraphDefinition", mermaid_text)
+            mermaid_container = document.getElementById("mermaid-container")
+            mermaid_container.innerHTML = f'<div class="mermaid">{mermaid_text}</div>'
+            window.mermaid.run()
+            return
+        
+        airtable_metadata = get_local_storage_metadata()
+        if not airtable_metadata:
+            return
+        
+        # Get UI parameters
+        display_mode_dropdown = document.getElementById("description-display-mode")
+        graph_direction_dropdown = document.getElementById("graph-direction")
+        max_depth_input = document.getElementById("max-depth")
+        
+        display_mode = display_mode_dropdown.value if display_mode_dropdown else "simple"
+        direction = graph_direction_dropdown.value if graph_direction_dropdown else "both"
+        max_depth_value = max_depth_input.value.strip() if max_depth_input else ""
+        
+        # Parse max_depth: use None if empty or invalid
+        max_depth = None
+        if max_depth_value:
+            try:
+                max_depth = int(max_depth_value)
+                if max_depth <= 0:
+                    max_depth = None
+            except (ValueError, TypeError):
+                max_depth = None
+        
+        # Use the graph-based approach
+        G = metadata_to_graph(airtable_metadata)
+        
+        # Get the field name for get_node_id
+        field_metadata = None
+        table_name = ""
+        for table in airtable_metadata.get("tables", []):
+            if table["id"] == table_id:
+                table_name = table["name"]
+                for field in table.get("fields", []):
+                    if field["id"] == field_id:
+                        field_metadata = field
+                        break
+                break
+        
+        if not field_metadata:
+            return
+        
+        # Get the node ID
+        node_id = get_node_id(airtable_metadata, field_id, table_name)
+        
+        # Get reachable nodes - use depth-aware function if max_depth is specified
+        if max_depth is not None:
+            subgraph, depth_dict = get_reachable_nodes_depth(G, node_id, direction=direction, max_depth=max_depth)
+        else:
+            subgraph = get_reachable_nodes(G, node_id, direction=direction)
+        
+        # Convert to Mermaid
+        mermaid_text = graph_to_mermaid(subgraph, direction=flowchart_type, display_mode=display_mode)
+        
         save_local_storage("lastGraphDefinition", mermaid_text)
         mermaid_container = document.getElementById("mermaid-container")
         mermaid_container.innerHTML = f'<div class="mermaid">{mermaid_text}</div>'
         window.mermaid.run()
-        return
-    
-    airtable_metadata = get_local_storage_metadata()
-    
-    # Get UI parameters
-    display_mode_dropdown = document.getElementById("description-display-mode")
-    graph_direction_dropdown = document.getElementById("graph-direction")
-    max_depth_input = document.getElementById("max-depth")
-    
-    display_mode = display_mode_dropdown.value
-    direction = graph_direction_dropdown.value
-    max_depth_value = max_depth_input.value.strip()
-    
-    # Parse max_depth: use None if empty, NaN, or invalid
-    max_depth = None
-    if max_depth_value:
-        try:
-            max_depth = int(max_depth_value)
-            if max_depth <= 0:
-                max_depth = None
-        except (ValueError, TypeError):
-            max_depth = None
-
-    print(f"Direction: {direction}, Display Mode: {display_mode}, Max Depth: {max_depth}")
-    
-    # Use the graph-based approach
-    G = metadata_to_graph(airtable_metadata)
-    
-    # Get the field name for get_node_id
-    field_metadata = None
-    table_name = ""
-    for table in airtable_metadata["tables"]:
-        if table["id"] == table_id:
-            table_name = table["name"]
-            for field in table["fields"]:
-                if field["id"] == field_id:
-                    field_metadata = field
-                    break
-            break
-    
-    if not field_metadata:
-        print(f"Field {field_id} not found in table {table_id}")
-        return
-    
-    # Get the node ID
-    node_id = get_node_id(
-        airtable_metadata,
-        field_id,
-        table_name
-    )
-    
-    # Get reachable nodes - use depth-aware function if max_depth is specified
-    if max_depth is not None:
-        subgraph, depth_dict = get_reachable_nodes_depth(G, node_id, direction=direction, max_depth=max_depth)
-        print(f"Retrieved {len(depth_dict)} nodes with depth information")
-    else:
-        subgraph = get_reachable_nodes(G, node_id, direction=direction)
-    
-    # Convert to Mermaid
-    mermaid_text = graph_to_mermaid(
-        subgraph, 
-        direction=flowchart_type, 
-        display_mode=display_mode
-    )
-    
-    save_local_storage("lastGraphDefinition", mermaid_text)
-
-    mermaid_container = document.getElementById("mermaid-container")
-    mermaid_container.innerHTML = f'<div class="mermaid">{mermaid_text}</div>'
-    window.mermaid.run()
+    except:
+        import traceback
+        error_message = traceback.format_exc()
+        print("Error generating Mermaid graph:", error_message)
 
 
-def parameters_changed(event):
-    """Handle parameter changes from UI controls"""
+
+def parameters_changed():
+    """Handle parameter changes from UI controls - called from JavaScript"""
     table_dropdown = document.getElementById("table-dropdown")
     field_dropdown = document.getElementById("field-dropdown")
     flowchart_type_dropdown = document.getElementById("flowchart-type")
     
+    if not table_dropdown or not field_dropdown or not flowchart_type_dropdown:
+        return
+    
     table_name = table_dropdown.value
-    field_name = field_dropdown.value.strip()
+    field_name = field_dropdown.value.strip() if field_dropdown.value else ""
     direction = flowchart_type_dropdown.value
+    
+    if not table_name:
+        return
     
     # Find the table ID and field ID from the metadata
     airtable_metadata = get_local_storage_metadata()
     if not airtable_metadata:
-        print("No metadata available")
         return
     
     table_id = None
     field_id = None
     
     # Find table ID by name
-    for table in airtable_metadata["tables"]:
+    for table in airtable_metadata.get("tables", []):
         if table["name"] == table_name:
             table_id = table["id"]
             # Find field ID by name within this table (if field is specified)
             if field_name and field_name != "<Show Table Dependencies>":
-                for field in table["fields"]:
+                for field in table.get("fields", []):
                     if field["name"] == field_name:
                         field_id = field["id"]
                         break
             break
     
     if not table_id:
-        print(f"Could not find table '{table_name}'")
         return
     
     # If special table dependencies option is selected or no field, generate table-level graph
     if not field_name or field_name == "<Show Table Dependencies>" or not field_id:
-        print(f"Generating table-level dependency graph for {table_name}")
         mermaid_text = generate_table_dependency_graph(table_id, direction)
         save_local_storage("lastGraphDefinition", mermaid_text)
         mermaid_container = document.getElementById("mermaid-container")
@@ -246,25 +240,15 @@ def parameters_changed(event):
         window.mermaid.run()
         return
     
-    print(f"Table: {table_name} ({table_id}), Field: {field_name} ({field_id}), Direction: {direction}")
     update_mermaid_graph(table_id, field_id, direction)
 
 
 def initialize():
     """Initialize the Dependency Mapper tab"""
-    # Get UI elements
-    field_dropdown = document.getElementById("field-dropdown")
-    flowchart_type_dropdown = document.getElementById("flowchart-type")
-    graph_direction_dropdown = document.getElementById("graph-direction")
-    display_mode_dropdown = document.getElementById("description-display-mode")
-    max_depth_input = document.getElementById("max-depth")
+    print("=== Initializing Dependency Mapper ===")
     
-    # Export function to JavaScript
+    # Export functions to JavaScript instead of using add_event_listener
     window.updateMermaidGraph = update_mermaid_graph
+    window.parametersChanged = parameters_changed
     
-    # Add event listeners
-    add_event_listener(field_dropdown, "change", parameters_changed)
-    add_event_listener(flowchart_type_dropdown, "change", parameters_changed)
-    add_event_listener(graph_direction_dropdown, "change", parameters_changed)
-    add_event_listener(display_mode_dropdown, "change", parameters_changed)
-    add_event_listener(max_depth_input, "input", parameters_changed)
+    print("Dependency Mapper initialized successfully")

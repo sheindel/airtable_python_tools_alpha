@@ -2,6 +2,8 @@ name = "Airtable Analysis Tools"
 version = "0.2.0"
 description = "Multiple tools for analyzing Airtable bases: Dependency Mapping, Analysis, Formula Graphing, and Compression"
 
+debug = true
+
 packages = ["networkx"]
 
 [files]

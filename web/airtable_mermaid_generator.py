@@ -12,6 +12,17 @@ class FieldGraphNode(TypedDict):
     edges: list[str]
 
 
+def _escape_mermaid_text(text: str) -> str:
+    """Escape characters that cause Mermaid syntax issues"""
+    # Replace parentheses with square brackets to avoid syntax conflicts  
+    text = text.replace("(", "[").replace(")", "]")
+    # Escape quotes
+    text = text.replace('"', "'")
+    # Escape # to prevent it from being treated as a comment
+    text = text.replace("#", "&#35;")
+    return text
+
+
 def field_metadata_to_mermaid_node(
         field: AirTableFieldMetadata,
         full_description: bool = True
@@ -87,15 +98,17 @@ def field_metadata_to_mermaid_node(
     # TODO we are using an array of nodes here so that we could append entire formulas in a subgraph
     # if a specific type above hasn't specified a full description, then we fall back to our default
     if not nodes:
+        escaped_field_name = _escape_mermaid_text(field_name)
         if full_description:
+            escaped_description = _escape_mermaid_text(field.get("description", "N/A"))
             nodes.append(f'''
                 {field_id}("
-                Name: {field_name}<br>
+                Name: {escaped_field_name}<br>
                 Type: {icon} {field["type"]}<br>
-                Description: {field.get("description", "N/A").replace('"', '')}<br>
+                Description: {escaped_description}<br>
                 ")''')
         else:
-            nodes.append(f'{field["id"]}("{icon} {field_name}")')
+            nodes.append(f'{field["id"]}("{icon} {escaped_field_name}")')
 
     return {
         "nodes": nodes,
@@ -197,7 +210,8 @@ def table_metadata_to_mermaid(
     if not all_nodes:
         return []
     
-    result.append(f'subgraph {table_id}["{table_name}"]')
+    escaped_table_name = _escape_mermaid_text(table_name)
+    result.append(f'subgraph {table_id}["{escaped_table_name}"]')
     result.extend((f'{INDENT}{node}' for node in all_nodes))
     result.append("end")
     result.extend(all_edges)

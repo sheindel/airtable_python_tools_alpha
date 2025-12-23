@@ -102,10 +102,8 @@
         }
     </style>
     <script type="module">
-        console.log('Hello from PyScript!');
         const loading = document.getElementById('loading');
         addEventListener('py:ready', () => {
-            console.log('PyScript is ready!');
             loading.style.display = 'none';
         });
         loading.style.display = 'flex';

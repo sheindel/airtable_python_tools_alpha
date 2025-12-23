@@ -40,6 +40,8 @@ def _escape_mermaid_text(text: str) -> str:
     text = text.replace('&', '&amp;')
     text = text.replace('<', '&lt;')
     text = text.replace('>', '&gt;')
+    # Escape # to prevent it from being treated as a comment
+    text = text.replace('#', '#35;') # for some reason this works as the mermaid replacement
     # Truncate very long text
     if len(text) > 50:
         text = text[:47] + "..."
@@ -665,28 +667,40 @@ def get_formula_for_display(table_name: str, field_name: str) -> str:
 
 def parameters_changed(event):
     """Handle parameter changes from UI controls"""
-    table_dropdown = document.getElementById("grapher-table-dropdown")
-    field_dropdown = document.getElementById("grapher-field-dropdown")
-    
-    table_name = table_dropdown.value.strip()
-    field_name = field_dropdown.value.strip()
-    
-    if not table_name or not field_name:
-        return
-    
-    # Get other options
-    expand_checkbox = document.getElementById("grapher-expand-fields")
-    depth_input = document.getElementById("grapher-expansion-depth")
-    direction_dropdown = document.getElementById("grapher-flowchart-direction")
-    
-    expand_fields = expand_checkbox.checked if expand_checkbox else False
-    direction = direction_dropdown.value if direction_dropdown else "TD"
-    
-    depth_value = depth_input.value.strip() if depth_input else ""
-    max_depth = int(depth_value) if depth_value else 1
-    
-    # Generate the flowchart
-    graph_formula_from_ui(table_name, field_name, expand_fields, max_depth, direction)
+    try:
+        table_dropdown = document.getElementById("grapher-table-dropdown")
+        field_dropdown = document.getElementById("grapher-field-dropdown")
+        
+        if not table_dropdown or not field_dropdown:
+            print("Error: Required UI elements not found")
+            return
+        
+        table_name = table_dropdown.value.strip()
+        field_name = field_dropdown.value.strip()
+        
+        if not table_name or not field_name:
+            return
+        
+        # Get other options
+        expand_checkbox = document.getElementById("grapher-expand-fields")
+        depth_input = document.getElementById("grapher-expansion-depth")
+        direction_dropdown = document.getElementById("grapher-flowchart-direction")
+        
+        expand_fields = expand_checkbox.checked if expand_checkbox else False
+        direction = direction_dropdown.value if direction_dropdown else "TD"
+        
+        depth_value = depth_input.value.strip() if depth_input else ""
+        max_depth = int(depth_value) if depth_value else 1
+        
+        # Generate the flowchart
+        graph_formula_from_ui(table_name, field_name, expand_fields, max_depth, direction)
+        
+    except Exception as e:
+        error_msg = f"Error in parameters_changed: {str(e)}"
+        print(error_msg)
+        mermaid_container = document.getElementById("formula-grapher-mermaid-container")
+        if mermaid_container:
+            mermaid_container.innerHTML = f'<span class="text-red-600 dark:text-red-400">{error_msg}</span>'
 
 
 def initialize():

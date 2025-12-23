@@ -527,6 +527,8 @@ def _format_node_label(graph: nx.DiGraph, node_id: str, display_mode: str = "sim
         text = text.replace("(", "[").replace(")", "]")
         # Also escape quotes
         text = text.replace('"', "'")
+        # Escape # to prevent it from being treated as a comment
+        text = text.replace("#", "&#35;")
         return text
     
     if node_type == "table":
