@@ -8,7 +8,34 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
-            darkMode: 'class'
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    },
+                    borderRadius: {
+                        'DEFAULT': '0.75rem',
+                    },
+                    boxShadow: {
+                        'sm': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                        'DEFAULT': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                        'md': '0 6px 12px -2px rgba(0, 0, 0, 0.12), 0 3px 7px -3px rgba(0, 0, 0, 0.1)',
+                        'lg': '0 10px 25px -3px rgba(0, 0, 0, 0.15), 0 4px 10px -2px rgba(0, 0, 0, 0.08)',
+                    }
+                }
+            }
         }
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.0.4/pako.min.js"></script>
@@ -98,7 +125,7 @@
     <script src="script.js" type="module"></script>
 </head>
 
-<body class="p-6 bg-gray-100 dark:bg-gray-900 font-sans transition-colors duration-200">
+<body class="p-6 bg-gray-50 dark:bg-gray-900 font-sans transition-colors duration-200">
     <div id="loading">
         <div class="spinner"></div>
         <div class="loading-text">Loading...</div>
@@ -123,7 +150,7 @@
                 </div>
             </div>
 
-            <button class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700" data-action="fetch-schema">Refresh Schema</button>
+            <button class="w-full bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold py-2.5 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed" data-action="fetch-schema">Refresh Schema</button>
             <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm" id="last-refresh">Last Refresh: Not yet retrieved</p>
         </header>
 
@@ -234,11 +261,11 @@
                     </button>
                 </div>
                 <div class="flex flex-wrap mt-4 gap-2">
-                    <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600" data-action="download-mermaid-svg">Download SVG</button>
-                    <button class="bg-purple-500 text-white py-2 px-4 rounded hover:bg-purple-600" data-action="open-mermaid-live">Open in Mermaid Live</button>
-                    <button class="bg-indigo-500 text-white py-2 px-4 rounded hover:bg-indigo-600" data-action="copy-mermaid">Copy Mermaid Graph Definition</button>
-                    <button class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600" data-action="toggle-mermaid-fullscreen">Fullscreen</button>
-                    <button class="bg-yellow-500 text-white py-2 px-4 rounded hover:bg-yellow-600" data-action="download-mermaid-text">Download Mermaid Text</button>
+                    <button class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150" data-action="download-mermaid-svg">Download SVG</button>
+                    <button class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150" data-action="open-mermaid-live">Open in Mermaid Live</button>
+                    <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150" data-action="copy-mermaid">Copy Mermaid Graph Definition</button>
+                    <button class="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150" data-action="toggle-mermaid-fullscreen">Fullscreen</button>
+                    <button class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150" data-action="download-mermaid-text">Download Mermaid Text</button>
                 </div>
             </div>
 
@@ -254,8 +281,8 @@
                 
                 <!-- Action Button -->
                 <div class="mb-4">
-                    <button id="generate-table-complexity-btn" 
-                            class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        <button id="generate-table-complexity-btn" 
+                            class="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
                             data-action="generate-table-complexity" 
                             disabled>
                         Field -> Table Dependencies
@@ -269,7 +296,7 @@
                         <pre id="analysis-csv-output" class="text-sm overflow-x-auto dark:text-gray-200"></pre>
                     </div>
                     <div class="mt-4">
-                        <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600" data-action="download-table-complexity">
+                        <button class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150" data-action="download-table-complexity">
                             Download CSV
                         </button>
                     </div>
@@ -351,10 +378,10 @@
 
                 <!-- Action Buttons -->
                 <div class="flex flex-wrap mt-4 gap-2">
-                    <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600" data-action="download-grapher-svg">Download SVG</button>
-                    <button class="bg-purple-500 text-white py-2 px-4 rounded hover:bg-purple-600" data-action="open-grapher-live">Open in Mermaid Live</button>
-                    <button class="bg-indigo-500 text-white py-2 px-4 rounded hover:bg-indigo-600" data-action="copy-grapher-mermaid">Copy Mermaid Definition</button>
-                    <button class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600" data-action="toggle-grapher-fullscreen">Fullscreen</button>
+                    <button class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150" data-action="download-grapher-svg">Download SVG</button>
+                    <button class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150" data-action="open-grapher-live">Open in Mermaid Live</button>
+                    <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150" data-action="copy-grapher-mermaid">Copy Mermaid Definition</button>
+                    <button class="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150" data-action="toggle-grapher-fullscreen">Fullscreen</button>
                 </div>
             </div>
 
@@ -418,7 +445,7 @@
                 </div>
 
                 <div class="mb-4">
-                        <button class="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed dark:disabled:bg-gray-600" 
+                        <button class="w-full bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed" 
                             id="table-report-btn"
                             data-action="generate-table-report"
                             disabled>All Table Formulas Compressed (CSV)</button>
@@ -513,7 +540,7 @@
                                    data-change-action="scorecard-filter">
                         </div>
                         <div class="flex items-end">
-                            <button class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700"
+                            <button class="w-full bg-primary-600 hover:bg-primary-700 dark:bg-primary-600 dark:hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150"
                                     data-action="refresh-scorecard">
                                 Refresh Scorecard
                             </button>
@@ -562,7 +589,7 @@
                 
                 <!-- Export Button -->
                 <div class="mt-4 flex gap-2">
-                        <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700"
+                        <button class="bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150"
                             data-action="download-scorecard-csv">
                         Download CSV
                     </button>
@@ -617,7 +644,7 @@
                             </select>
                         </div>
                         <div class="flex items-end">
-                            <button class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700"
+                            <button class="w-full bg-primary-600 hover:bg-primary-700 dark:bg-primary-600 dark:hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150"
                                     data-action="refresh-unused">
                                 Scan for Unused Fields
                             </button>
@@ -667,7 +694,7 @@
                 
                 <!-- Export Button -->
                 <div class="mt-4 flex gap-2">
-                        <button class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700"
+                        <button class="bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150"
                             data-action="download-unused-csv">
                         Download CSV
                     </button>

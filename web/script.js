@@ -2,7 +2,7 @@ import "./components/ui/at-dropdown.js";
 import "./components/ui/theme-toggle.js";
 import "./components/ui/tab-manager.js";
 import { saveSchema, getSchema, getTables } from "./components/ui/schema-store.js";
-import { getDropdown, setDropdownOptions, copyToClipboard } from "./modules/dom-utils.js";
+import { getDropdown, setDropdownOptions } from "./modules/dom-utils.js";
 import { downloadMermaidSVG, openInMermaidLive, copyMermaidText, toggleFullscreen, downloadMermaidText } from "./modules/mermaid-actions.js";
 import {
     updateCompressorFieldDropdown,
@@ -44,38 +44,12 @@ import {
     downloadUnusedFieldsCSV
 } from "./modules/unused.js";
 import { wireActions } from "./modules/ui-events.js";
-
-const actionHandlers = {
-    "fetch-schema": fetchSchema,
-    "download-mermaid-svg": downloadMermaidSVG,
-    "open-mermaid-live": openInMermaidLive,
-    "copy-mermaid": copyMermaidText,
-    "toggle-mermaid-fullscreen": toggleFullscreen,
-    "download-mermaid-text": downloadMermaidText,
-    "generate-table-complexity": generateTableComplexityCSV,
-    "download-table-complexity": downloadTableComplexityCSV,
-    "copy-grapher-mermaid": copyFormulaGrapherMermaidText,
-    "download-grapher-svg": downloadFormulaGrapherSVG,
-    "open-grapher-live": openFormulaGrapherInMermaidLive,
-    "toggle-grapher-fullscreen": toggleFormulaGrapherFullscreen,
-    "generate-table-report": generateTableReport,
-    "copy-to-clipboard": (event, target) => copyToClipboard(target.dataset.target, target.dataset.description || "", event),
-    "refresh-scorecard": refreshComplexityScorecard,
-    "sort-scorecard": (_event, target) => sortScorecardBy(target.dataset.field),
-    "download-scorecard-csv": downloadComplexityCSV,
-    "refresh-unused": refreshUnusedFields,
-    "sort-unused": (_event, target) => sortUnusedBy(target.dataset.field),
-    "download-unused-csv": downloadUnusedFieldsCSV,
-};
-
-const changeHandlers = {
-    "scorecard-filter": refreshComplexityScorecard,
-    "unused-filter": refreshUnusedFields,
-};
+import { buildActionHandlers, changeHandlers } from "./modules/action-handlers.js";
 
 document.addEventListener("DOMContentLoaded", () => {
     hydrateSchemaFromStorage();
     wireDropdowns();
+    const actionHandlers = buildActionHandlers(fetchSchema);
     wireActions(actionHandlers, changeHandlers);
 
     document.addEventListener("tab-change", (event) => {
@@ -251,28 +225,3 @@ function updateFieldDropdown(tableId) {
 
     setDropdownOptions("field-dropdown", fieldOptions);
 }
-
-// Export functions to window object so they can be called from HTML
-window.fetchSchema = fetchSchema;
-window.downloadMermaidSVG = downloadMermaidSVG;
-window.openInMermaidLive = openInMermaidLive;
-window.copyMermaidText = copyMermaidText;
-window.toggleFullscreen = toggleFullscreen;
-window.downloadMermaidText = downloadMermaidText;
-window.switchTab = setActiveTab;
-window.compressFormula = compressFormula;
-window.copyCompressedFormula = copyCompressedFormula;
-window.generateTableReport = generateTableReport;
-window.copyToClipboard = copyToClipboard;
-window.generateTableComplexityCSV = generateTableComplexityCSV;
-window.downloadTableComplexityCSV = downloadTableComplexityCSV;
-window.downloadFormulaGrapherSVG = downloadFormulaGrapherSVG;
-window.openFormulaGrapherInMermaidLive = openFormulaGrapherInMermaidLive;
-window.copyFormulaGrapherMermaidText = copyFormulaGrapherMermaidText;
-window.toggleFormulaGrapherFullscreen = toggleFormulaGrapherFullscreen;
-window.refreshComplexityScorecard = refreshComplexityScorecard;
-window.sortScorecardBy = sortScorecardBy;
-window.downloadComplexityCSV = downloadComplexityCSV;
-window.refreshUnusedFields = refreshUnusedFields;
-window.sortUnusedBy = sortUnusedBy;
-window.downloadUnusedFieldsCSV = downloadUnusedFieldsCSV;
