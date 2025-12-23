@@ -8,6 +8,8 @@ This module handles:
 import sys
 sys.path.append("web")
 
+import pyodide
+
 from pyscript import window
 
 # Import tab modules
