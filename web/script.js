@@ -47,9 +47,9 @@ import { wireActions } from "./modules/ui-events.js";
 import { buildActionHandlers, changeHandlers } from "./modules/action-handlers.js";
 
 document.addEventListener("DOMContentLoaded", () => {
-    hydrateSchemaFromStorage();
+    checkSchemaAndUpdateUI();
     wireDropdowns();
-    const actionHandlers = buildActionHandlers(fetchSchema);
+    const actionHandlers = buildActionHandlers(fetchSchemaAndUpdateUI);
     wireActions(actionHandlers, changeHandlers);
 
     document.addEventListener("tab-change", (event) => {
@@ -63,6 +63,25 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 });
+
+// Global function for accordion toggle (called from HTML onclick)
+window.toggleSetupAccordion = function() {
+    const accordionContent = document.getElementById("setup-accordion-content");
+    const accordionHeader = document.getElementById("setup-accordion-header");
+    const accordionArrow = document.getElementById("accordion-arrow");
+    
+    const isExpanded = !accordionContent.classList.contains("hidden");
+    
+    if (isExpanded) {
+        // Collapse
+        accordionContent.classList.add("hidden");
+        accordionArrow.classList.remove("rotate-180");
+    } else {
+        // Expand
+        accordionContent.classList.remove("hidden");
+        accordionArrow.classList.add("rotate-180");
+    }
+};
 
 // Wait for PyScript to be ready before calling Python functions
 addEventListener('py:ready', () => {
@@ -83,8 +102,43 @@ addEventListener('py:ready', () => {
 
 let fieldOptions = [];
 
-function hydrateSchemaFromStorage() {
-    updateSchemaInfo();
+function checkSchemaAndUpdateUI() {
+    const schemaData = getSchema();
+    const hasSchema = schemaData && schemaData.schema && schemaData.schema.tables && schemaData.schema.tables.length > 0;
+    
+    updateUIBasedOnSchema(hasSchema, schemaData);
+    if (hasSchema) {
+        updateSchemaInfo();
+    }
+}
+
+function updateUIBasedOnSchema(hasSchema, schemaData) {
+    const setupAccordionHeader = document.getElementById("setup-accordion-header");
+    const setupAccordionContent = document.getElementById("setup-accordion-content");
+    const tabNavigation = document.getElementById("tab-navigation");
+    const tabContent = document.getElementById("tab-content");
+    const accordionRefreshDate = document.getElementById("accordion-refresh-date");
+    
+    if (hasSchema) {
+        // Schema exists - show accordion header (collapsed), hide content, show tabs
+        setupAccordionHeader.classList.remove("hidden");
+        setupAccordionContent.classList.add("hidden");
+        tabNavigation.classList.remove("hidden");
+        tabContent.classList.remove("hidden");
+        
+        // Update the refresh date in the accordion header
+        if (schemaData && schemaData.timestamp) {
+            accordionRefreshDate.textContent = `Last: ${schemaData.timestamp}`;
+        } else {
+            accordionRefreshDate.textContent = "Last: Just now";
+        }
+    } else {
+        // No schema - show setup form, hide tabs
+        setupAccordionHeader.classList.add("hidden");
+        setupAccordionContent.classList.remove("hidden");
+        tabNavigation.classList.add("hidden");
+        tabContent.classList.add("hidden");
+    }
 }
 
 function wireDropdowns() {
@@ -154,7 +208,7 @@ function setActiveTab(tabName) {
     manager?.setActive(tabName, true);
 }
 
-async function fetchSchema() {
+async function fetchSchemaAndUpdateUI() {
     const baseId = document.getElementById("base-id").value;
     const pat = document.getElementById("pat").value;
     if (!baseId || !pat) {
@@ -170,11 +224,20 @@ async function fetchSchema() {
         });
         const schema = await response.json();
         saveSchema(schema);
+        
+        // Update UI after fetching schema
+        const schemaData = getSchema();
+        updateUIBasedOnSchema(true, schemaData);
         updateSchemaInfo();
     } catch (error) {
         console.error("Error fetching schema:", error);
         alert("Failed to retrieve schema.");
     }
+}
+
+// Keep the old function name for backward compatibility
+async function fetchSchema() {
+    return fetchSchemaAndUpdateUI();
 }
 
 function updateSchemaInfo() {
