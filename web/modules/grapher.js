@@ -1,5 +1,6 @@
 import { getSchema, getTables } from "../components/ui/schema-store.js";
 import { getDropdown, setDropdownOptions } from "./dom-utils.js";
+import { toast } from "./toast.js";
 
 let grapherTableOptions = [];
 let grapherFieldOptions = [];
@@ -95,7 +96,7 @@ export function autoGenerateFormulaGraph() {
 
 export function downloadFormulaGrapherSVG() {
     const svgElement = document.querySelector("#formula-grapher-mermaid-container .mermaid svg");
-    if (!svgElement) return alert("No diagram available to download");
+    if (!svgElement) return toast.warning("No diagram available to download");
     const serializer = new XMLSerializer();
     const svgString = serializer.serializeToString(svgElement);
     const blob = new Blob([svgString], { type: "image/svg+xml" });
@@ -107,7 +108,7 @@ export function downloadFormulaGrapherSVG() {
 
 export function openFormulaGrapherInMermaidLive() {
     const graphDefinition = localStorage.getItem("lastFormulaGraphDefinition");
-    if (!graphDefinition) return alert("No diagram available to open in Mermaid Live");
+    if (!graphDefinition) return toast.warning("No diagram available to open in Mermaid Live");
 
     const state = {
         code: graphDefinition,
@@ -128,12 +129,12 @@ export function openFormulaGrapherInMermaidLive() {
 
 export function copyFormulaGrapherMermaidText() {
     const graphDefinition = localStorage.getItem("lastFormulaGraphDefinition");
-    if (!graphDefinition) return alert("No diagram available to copy");
+    if (!graphDefinition) return toast.warning("No diagram available to copy");
     navigator.clipboard.writeText(graphDefinition).then(() => {
-        alert("Mermaid diagram copied to clipboard");
+        toast.success("Mermaid diagram copied to clipboard");
     }).catch((error) => {
         console.error("Error copying to clipboard:", error);
-        alert("Failed to copy Mermaid diagram to clipboard");
+        toast.error("Failed to copy Mermaid diagram to clipboard");
     });
 }
 
@@ -141,7 +142,7 @@ export function toggleFormulaGrapherFullscreen() {
     const mermaidContainer = document.getElementById("formula-grapher-mermaid-container");
     if (!document.fullscreenElement) {
         mermaidContainer?.requestFullscreen().catch((err) => {
-            alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            toast.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
         });
     } else {
         document.exitFullscreen();

@@ -1,3 +1,5 @@
+import { toast } from "./toast.js";
+
 export function getDropdown(id) {
     return document.getElementById(id);
 }
@@ -20,7 +22,7 @@ export function copyToClipboard(elementId, description = "Content", event) {
     const text = element?.textContent || "";
 
     if (!text || text.includes("No formula selected") || text.includes("Select a formula field")) {
-        alert(`No ${description.toLowerCase()} to copy`);
+        toast.warning(`No ${description.toLowerCase()} to copy`);
         return;
     }
 
@@ -37,6 +39,6 @@ export function copyToClipboard(elementId, description = "Content", event) {
         }
     }).catch((error) => {
         console.error("Error copying to clipboard:", error);
-        alert(`Failed to copy ${description.toLowerCase()} to clipboard`);
+        toast.error(`Failed to copy ${description.toLowerCase()} to clipboard`);
     });
 }

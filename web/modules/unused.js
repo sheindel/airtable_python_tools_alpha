@@ -1,5 +1,6 @@
 import { getSchema } from "../components/ui/schema-store.js";
 import { escapeHtml } from "./dom-utils.js";
+import { toast } from "./toast.js";
 
 let unusedFieldsData = [];
 let unusedSortField = "table_name";
@@ -58,10 +59,10 @@ export function refreshUnusedFields() {
         } catch (error) {
             console.error("Error getting unused fields data:", error);
             console.error("Error details:", error.message, error.stack);
-            alert(`Failed to get unused fields data. Make sure you have loaded a schema. Error: ${error.message || error}`);
+            toast.error(`Failed to get unused fields data. Make sure you have loaded a schema. Error: ${error.message || error}`);
         }
     } else {
-        alert("Unused fields detector is not yet initialized. Please refresh the page.");
+        toast.error("Unused fields detector is not yet initialized. Please refresh the page.");
     }
 }
 
@@ -96,10 +97,10 @@ export function downloadUnusedFieldsCSV() {
             document.body.removeChild(link);
         } catch (error) {
             console.error("Error exporting CSV:", error);
-            alert("Failed to export CSV");
+            toast.error("Failed to export CSV");
         }
     } else {
-        alert("Export function not available. Please refresh the page.");
+        toast.error("Export function not available. Please refresh the page.");
     }
 }
 

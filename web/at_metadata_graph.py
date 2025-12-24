@@ -190,12 +190,29 @@ def get_reachable_nodes(
         # Get both ancestors and descendants
         nodes = list(nx.ancestors(G, node_id)) + list(nx.descendants(G, node_id))
 
-    # Get all table IDs from the reachable nodes and add them
-    table_ids = set(get_distinct_table_dependencies_from_nodes(G.subgraph(nodes)).keys())
-    for table_id in table_ids:
-        nodes.append(table_id)
+    # Add the source node
+    nodes.append(node_id)
 
-    return G.subgraph(list(nodes) + [node_id]).copy()
+    # Get all table IDs from the reachable nodes
+    table_ids = set()
+    for node in nodes:
+        if node in G.nodes:
+            node_data = G.nodes[node]
+            # Add table if this is a field node
+            if node_data.get("type") == "field":
+                table_id = node_data.get("table_id")
+                if table_id:
+                    table_ids.add(table_id)
+            # Also check if this node is referenced as a linked table in edges
+            for _, target, edge_data in G.out_edges(node, data=True):
+                if edge_data.get("relationship") == "links_to" and target in G.nodes:
+                    if G.nodes[target].get("type") == "table":
+                        table_ids.add(target)
+    
+    # Add all table nodes to the nodes list
+    nodes.extend(table_ids)
+
+    return G.subgraph(nodes).copy()
 
 
 def get_reachable_nodes_depth(
@@ -406,6 +423,9 @@ def graph_to_mermaid(
     # Generate table subgraphs
     for table_id, table_info in tables.items():
         if not table_info["fields"]:
+            # Table with no fields - render as a simple box node
+            escaped_name = table_info["name"].replace("(", "[").replace(")", "]").replace('"', "'").replace("#", "&#35;")
+            mermaid_lines.append(f'    {table_id}["{escaped_name}"]')
             continue
             
         mermaid_lines.append(f'    subgraph {table_id}["{table_info["name"]}"]')

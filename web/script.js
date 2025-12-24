@@ -3,6 +3,7 @@ import "./components/ui/theme-toggle.js";
 import "./components/ui/tab-manager.js";
 import { saveSchema, getSchema, getTables } from "./components/ui/schema-store.js";
 import { getDropdown, setDropdownOptions } from "./modules/dom-utils.js";
+import { toast } from "./modules/toast.js";
 import { downloadMermaidSVG, openInMermaidLive, copyMermaidText, toggleFullscreen, downloadMermaidText } from "./modules/mermaid-actions.js";
 import {
     updateCompressorFieldDropdown,
@@ -49,7 +50,7 @@ import { buildActionHandlers, changeHandlers } from "./modules/action-handlers.j
 document.addEventListener("DOMContentLoaded", () => {
     checkSchemaAndUpdateUI();
     wireDropdowns();
-    const actionHandlers = buildActionHandlers(fetchSchemaAndUpdateUI);
+    const actionHandlers = buildActionHandlers(fetchSchemaAndUpdateUI, loadSampleSchema);
     wireActions(actionHandlers, changeHandlers);
 
     document.addEventListener("tab-change", (event) => {
@@ -267,7 +268,7 @@ async function fetchSchemaAndUpdateUI() {
     const baseId = document.getElementById("base-id").value;
     const pat = document.getElementById("pat").value;
     if (!baseId || !pat) {
-        alert("Please enter both Base ID and PAT.");
+        toast.warning("Please enter both Base ID and PAT.");
         return;
     }
     try {
@@ -286,13 +287,34 @@ async function fetchSchemaAndUpdateUI() {
         updateSchemaInfo();
     } catch (error) {
         console.error("Error fetching schema:", error);
-        alert("Failed to retrieve schema.");
+        toast.error("Failed to retrieve schema.");
     }
 }
 
 // Keep the old function name for backward compatibility
 async function fetchSchema() {
     return fetchSchemaAndUpdateUI();
+}
+
+async function loadSampleSchema() {
+    try {
+        const response = await fetch('./sample_schema.json');
+        if (!response.ok) {
+            throw new Error(`Failed to load sample schema: ${response.statusText}`);
+        }
+        const schema = await response.json();
+        saveSchema(schema);
+        
+        // Update UI after loading sample schema
+        const schemaData = getSchema();
+        updateUIBasedOnSchema(true, schemaData);
+        updateSchemaInfo();
+        
+        toast.success("Sample schema loaded successfully!");
+    } catch (error) {
+        console.error("Error loading sample schema:", error);
+        toast.error("Failed to load sample schema. Please check the console for details.");
+    }
 }
 
 function updateSchemaInfo() {

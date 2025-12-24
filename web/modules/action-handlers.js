@@ -19,9 +19,10 @@ import {
     downloadUnusedFieldsCSV,
 } from "./unused.js";
 
-export function buildActionHandlers(fetchSchema) {
+export function buildActionHandlers(fetchSchema, loadSampleSchema) {
     return {
         "fetch-schema": fetchSchema,
+        "load-sample-schema": loadSampleSchema,
         "download-mermaid-svg": downloadMermaidSVG,
         "open-mermaid-live": openInMermaidLive,
         "copy-mermaid": copyMermaidText,

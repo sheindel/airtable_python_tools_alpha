@@ -1,5 +1,6 @@
 import { getSchema, getTables } from "../components/ui/schema-store.js";
 import { getDropdown, setDropdownOptions } from "./dom-utils.js";
+import { toast } from "./toast.js";
 
 let originalFormulaText = "";
 
@@ -113,7 +114,7 @@ export function compressFormula() {
     const fieldName = fieldInput.value.trim();
 
     if (!tableName || !fieldName) {
-        alert("Please select both a table and a field.");
+        toast.warning("Please select both a table and a field.");
         return;
     }
 
@@ -125,7 +126,7 @@ export function compressFormula() {
     if (typeof window.compressFormulaFromUI !== "undefined") {
         window.compressFormulaFromUI(tableName, fieldName, compressionDepth, outputFormat, displayFormat);
     } else {
-        alert("Formula compression is not yet initialized. Please refresh the page.");
+        toast.error("Formula compression is not yet initialized. Please refresh the page.");
     }
 }
 
@@ -146,15 +147,15 @@ export function copyCompressedFormula() {
     const text = compressedDisplay?.textContent || "";
 
     if (!text || text.includes("Select a formula field")) {
-        alert("No compressed formula to copy");
+        toast.warning("No compressed formula to copy");
         return;
     }
 
     navigator.clipboard.writeText(text).then(() => {
-        alert("Compressed formula copied to clipboard");
+        toast.success("Compressed formula copied to clipboard");
     }).catch((error) => {
         console.error("Error copying to clipboard:", error);
-        alert("Failed to copy compressed formula to clipboard");
+        toast.error("Failed to copy compressed formula to clipboard");
     });
 }
 
@@ -164,7 +165,7 @@ export function generateTableReport() {
 
     const tableName = tableInput.value.trim();
     if (!tableName) {
-        alert("Please select a table.");
+        toast.warning("Please select a table.");
         return;
     }
 
@@ -187,13 +188,13 @@ export function generateTableReport() {
             link.click();
             document.body.removeChild(link);
 
-            alert(`Table report generated successfully for "${tableName}"!`);
+            toast.success(`Table report generated successfully for "${tableName}"!`);
         } catch (error) {
             console.error("Error generating table report:", error);
-            alert(`Failed to generate table report: ${error.message || error}`);
+            toast.error(`Failed to generate table report: ${error.message || error}`);
         }
     } else {
-        alert("Table report generation is not yet initialized. Please refresh the page.");
+        toast.error("Table report generation is not yet initialized. Please refresh the page.");
     }
 }
 
