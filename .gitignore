@@ -177,6 +177,8 @@ cython_debug/
 .ai_notes/
 
 # Ignore potential output files
-*.json
+# Ignore all JSON except for web/samples_schema.json
+/*.json
+
 *.csv
 .~lock*

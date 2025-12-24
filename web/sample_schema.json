@@ -1,0 +1,1035 @@
+{
+  "tables": [
+    {
+      "id": "tbl622YB7LCEUgXhy",
+      "name": "Contacts",
+      "primaryFieldId": "fldwHri9eQ64I37Qw",
+      "fields": [
+        {
+          "type": "singleLineText",
+          "id": "fldwHri9eQ64I37Qw",
+          "name": "Name"
+        },
+        {
+          "type": "phoneNumber",
+          "id": "fldhNsYUNXSEMdEcz",
+          "name": "Cell"
+        },
+        {
+          "type": "email",
+          "id": "fldHHDlb0ABdWPobx",
+          "name": "Email"
+        },
+        {
+          "type": "multilineText",
+          "id": "fldTPWI4UnSUPxbCg",
+          "name": "Notes"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblbaKbAEQV98W9aW",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldLEmWK0V3LnC8ra"
+          },
+          "id": "fldJ6JauxlLpLJo5U",
+          "name": "Projects"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tbl03UhPCP6lzxF8t",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldVO4sktdtWp0z6j"
+          },
+          "id": "fldUxE2ch8Z0V6ust",
+          "name": "Tasks"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblMk5gEpMqZYhSm7",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldzfxzDCAD7dYyxj"
+          },
+          "id": "fldn1iwNbZnaAeAgT",
+          "name": "Events"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblvf9UH8qzTO2Zcn",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldAEhVHNM3YXiVgs"
+          },
+          "id": "fldfjydT8vN8Bed0e",
+          "name": "Resources"
+        }
+      ],
+      "views": [
+        {
+          "id": "viwBlfcv4Cs76aqp8",
+          "name": "Contacts",
+          "type": "grid"
+        }
+      ]
+    },
+    {
+      "id": "tblntPwM2nhOtJYIL",
+      "name": "Clients",
+      "primaryFieldId": "fld9DXN2ezHMrfigj",
+      "fields": [
+        {
+          "type": "singleLineText",
+          "id": "fld9DXN2ezHMrfigj",
+          "name": "Name"
+        },
+        {
+          "type": "multilineText",
+          "id": "fldVyxSpNof40yvw7",
+          "name": "Notes"
+        },
+        {
+          "type": "singleCollaborator",
+          "id": "fldRafW0S62jCv55o",
+          "name": "Assignee"
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "seloUumGOeaXKgsbg",
+                "name": "Todo",
+                "color": "redLight2"
+              },
+              {
+                "id": "selynAj6bvR14Mxln",
+                "name": "In progress",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selpyvZ0P12SnMNeZ",
+                "name": "Done",
+                "color": "greenLight2"
+              }
+            ]
+          },
+          "id": "fldSBeyglNfwcPN9x",
+          "name": "Status"
+        },
+        {
+          "type": "multipleAttachments",
+          "options": {
+            "isReversed": false
+          },
+          "id": "fldUIa0MzwcXk5K2P",
+          "name": "Attachments"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblbaKbAEQV98W9aW",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldB9ea1L1L1GUCHq"
+          },
+          "id": "fld1PFZQ9YcqGv42B",
+          "name": "Projects"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblMk5gEpMqZYhSm7",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldowREl7Jy3DIVEO"
+          },
+          "id": "fldQbaa5pUEvT9kjo",
+          "name": "Events"
+        }
+      ],
+      "views": [
+        {
+          "id": "viwON3ktQIOjguMo2",
+          "name": "Grid view",
+          "type": "grid"
+        }
+      ]
+    },
+    {
+      "id": "tblbaKbAEQV98W9aW",
+      "name": "Projects",
+      "primaryFieldId": "fld5NZ1YhuGYtZXwi",
+      "fields": [
+        {
+          "type": "singleLineText",
+          "id": "fld5NZ1YhuGYtZXwi",
+          "name": "Project Name"
+        },
+        {
+          "type": "multilineText",
+          "id": "fldf9NDaaKR0rg3I6",
+          "name": "Description"
+        },
+        {
+          "type": "date",
+          "options": {
+            "dateFormat": {
+              "name": "local",
+              "format": "l"
+            }
+          },
+          "id": "fldwZzLh4qDfxn3uN",
+          "name": "Start Date"
+        },
+        {
+          "type": "date",
+          "options": {
+            "dateFormat": {
+              "name": "local",
+              "format": "l"
+            }
+          },
+          "id": "fldtDuNZZirOarKRa",
+          "name": "End Date"
+        },
+        {
+          "type": "currency",
+          "options": {
+            "precision": 2,
+            "symbol": "$"
+          },
+          "id": "fldRSU2rOYnYET434",
+          "name": "Budget"
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "selQabBd3JEwSGCeS",
+                "name": "Planned",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selbS3uvwsN8Zjxz6",
+                "name": "Active",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selfP0MskV9O5xAni",
+                "name": "Completed",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selmnr7cxE64Ve23v",
+                "name": "On Hold",
+                "color": "greenLight2"
+              }
+            ]
+          },
+          "id": "fldLBTyil2lVEPN0g",
+          "name": "Status"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblntPwM2nhOtJYIL",
+            "isReversed": false,
+            "prefersSingleRecordLink": true,
+            "inverseLinkFieldId": "fld1PFZQ9YcqGv42B"
+          },
+          "id": "fldB9ea1L1L1GUCHq",
+          "name": "Client"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tbl622YB7LCEUgXhy",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldJ6JauxlLpLJo5U"
+          },
+          "id": "fldLEmWK0V3LnC8ra",
+          "name": "Contacts"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tbl03UhPCP6lzxF8t",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fld4pbL29sHcwKfnZ"
+          },
+          "id": "fldphT0BYfig7QJqR",
+          "name": "Related Tasks"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblMk5gEpMqZYhSm7",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fld5GwzSdFutKPq8T"
+          },
+          "id": "fldsS0p9Smf5jqt0n",
+          "name": "Events"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblvf9UH8qzTO2Zcn",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldJLlJ73obOSVOVY"
+          },
+          "id": "fldpEQWMJEsUSviBO",
+          "name": "Resources"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblgNBS3pqoEBDffE",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fld5oXr74dkQUwKqu"
+          },
+          "id": "fldRQdNA3KwV1mvcA",
+          "name": "Milestones"
+        }
+      ],
+      "views": [
+        {
+          "id": "viw6i316hfaTHFDmL",
+          "name": "Grid view",
+          "type": "grid"
+        }
+      ]
+    },
+    {
+      "id": "tbl03UhPCP6lzxF8t",
+      "name": "Tasks",
+      "primaryFieldId": "fldC9d3Ec3jybUKDI",
+      "fields": [
+        {
+          "type": "singleLineText",
+          "id": "fldC9d3Ec3jybUKDI",
+          "name": "Task Name"
+        },
+        {
+          "type": "multilineText",
+          "id": "fldrLU3cg6nY7b7Tq",
+          "name": "Description"
+        },
+        {
+          "type": "date",
+          "options": {
+            "dateFormat": {
+              "name": "local",
+              "format": "l"
+            }
+          },
+          "id": "fldA8cdEIiTE7YHY9",
+          "name": "Due Date"
+        },
+        {
+          "type": "singleCollaborator",
+          "id": "fldmF6EaWG6fQJyR0",
+          "name": "Assigned To"
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "selA5A5FhZmhCjZ68",
+                "name": "Not Started",
+                "color": "blueLight2"
+              },
+              {
+                "id": "sel7k37aQDrwBMQlw",
+                "name": "In Progress",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "sel21ALAfGAlk7oFw",
+                "name": "Blocked",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selI1FuFdTk028iZ2",
+                "name": "Done",
+                "color": "greenLight2"
+              }
+            ]
+          },
+          "id": "fldxUPYn29A8ZCL5D",
+          "name": "Status"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblbaKbAEQV98W9aW",
+            "isReversed": false,
+            "prefersSingleRecordLink": true,
+            "inverseLinkFieldId": "fldphT0BYfig7QJqR"
+          },
+          "id": "fld4pbL29sHcwKfnZ",
+          "name": "Project"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tbl622YB7LCEUgXhy",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldUxE2ch8Z0V6ust"
+          },
+          "id": "fldVO4sktdtWp0z6j",
+          "name": "Related Contacts"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tbl03UhPCP6lzxF8t",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldlsZkYQCVq9bqB6"
+          },
+          "id": "fldOMzq8RntuziNfz",
+          "name": "Dependency Tasks"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tbl03UhPCP6lzxF8t",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldOMzq8RntuziNfz"
+          },
+          "id": "fldlsZkYQCVq9bqB6",
+          "name": "From field: Dependency Tasks"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblvf9UH8qzTO2Zcn",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldocfegEW4vA66IG"
+          },
+          "id": "fld5Dgo5v6RQTh0xm",
+          "name": "Resources"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblgNBS3pqoEBDffE",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldGU3Jd7eZ8c5o9A"
+          },
+          "id": "fldbBB2P6VMq2OXnr",
+          "name": "Milestones"
+        }
+      ],
+      "views": [
+        {
+          "id": "viwzG2meigttThevr",
+          "name": "Grid view",
+          "type": "grid"
+        }
+      ]
+    },
+    {
+      "id": "tblMk5gEpMqZYhSm7",
+      "name": "Events",
+      "primaryFieldId": "fldj78EOO1O9vERDK",
+      "fields": [
+        {
+          "type": "singleLineText",
+          "id": "fldj78EOO1O9vERDK",
+          "name": "Event Name"
+        },
+        {
+          "type": "dateTime",
+          "options": {
+            "dateFormat": {
+              "name": "us",
+              "format": "M/D/YYYY"
+            },
+            "timeFormat": {
+              "name": "12hour",
+              "format": "h:mma"
+            },
+            "timeZone": "utc"
+          },
+          "id": "fldmTtUvePChSOlY6",
+          "name": "Date"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldVnsEB8eHPF6wNV",
+          "name": "Location"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblbaKbAEQV98W9aW",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldsS0p9Smf5jqt0n"
+          },
+          "id": "fld5GwzSdFutKPq8T",
+          "name": "Related Projects"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblntPwM2nhOtJYIL",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldQbaa5pUEvT9kjo"
+          },
+          "id": "fldowREl7Jy3DIVEO",
+          "name": "Related Clients"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tbl622YB7LCEUgXhy",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldn1iwNbZnaAeAgT"
+          },
+          "id": "fldzfxzDCAD7dYyxj",
+          "name": "Attendees"
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "sellSYdj8zR4sHW5M",
+                "name": "Kickoff",
+                "color": "blueLight2"
+              },
+              {
+                "id": "seli4aPnoJHcTS9Ks",
+                "name": "Review",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selRcOmkrATr2lo1q",
+                "name": "Delivery",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selk9UcmPWrXjOGYd",
+                "name": "Meeting",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selTHyN4ZlQWomjKG",
+                "name": "Workshop",
+                "color": "yellowLight2"
+              }
+            ]
+          },
+          "id": "flduw13FV90FX5NCg",
+          "name": "Event Type"
+        },
+        {
+          "type": "multipleAttachments",
+          "options": {
+            "isReversed": true
+          },
+          "id": "fldFkjh5nRL15KbkV",
+          "name": "Attachments"
+        }
+      ],
+      "views": [
+        {
+          "id": "viwbvbyZZrVwql503",
+          "name": "Grid view",
+          "type": "grid"
+        }
+      ]
+    },
+    {
+      "id": "tblvf9UH8qzTO2Zcn",
+      "name": "Resources",
+      "primaryFieldId": "fldKwRGjYVcT9KArO",
+      "fields": [
+        {
+          "type": "singleLineText",
+          "id": "fldKwRGjYVcT9KArO",
+          "name": "Resource Name"
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "selpHc9vOEctY4wHi",
+                "name": "Personnel",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selVys5PBRX6jpiTb",
+                "name": "Material",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selp334J7PGnXJNLX",
+                "name": "Equipment",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selXN6ABG1OK3oDXf",
+                "name": "Other",
+                "color": "greenLight2"
+              }
+            ]
+          },
+          "id": "fldP34H46tViiHd8q",
+          "name": "Type"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblbaKbAEQV98W9aW",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldpEQWMJEsUSviBO"
+          },
+          "id": "fldJLlJ73obOSVOVY",
+          "name": "Assigned Projects"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tbl03UhPCP6lzxF8t",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fld5Dgo5v6RQTh0xm"
+          },
+          "id": "fldocfegEW4vA66IG",
+          "name": "Assigned Tasks"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tbl622YB7LCEUgXhy",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldfjydT8vN8Bed0e"
+          },
+          "id": "fldAEhVHNM3YXiVgs",
+          "name": "Contacts"
+        },
+        {
+          "type": "multilineText",
+          "id": "fldWt8xb6nKy8Kt7C",
+          "name": "Notes"
+        }
+      ],
+      "views": [
+        {
+          "id": "viwAPyaSpXnDEDZ48",
+          "name": "Grid view",
+          "type": "grid"
+        }
+      ]
+    },
+    {
+      "id": "tblgNBS3pqoEBDffE",
+      "name": "Milestones",
+      "primaryFieldId": "fldtCYjvUDtu8l9MA",
+      "fields": [
+        {
+          "type": "singleLineText",
+          "id": "fldtCYjvUDtu8l9MA",
+          "name": "Milestone Name"
+        },
+        {
+          "type": "date",
+          "options": {
+            "dateFormat": {
+              "name": "local",
+              "format": "l"
+            }
+          },
+          "id": "fldgxOv7ikpSIWuRB",
+          "name": "Target Date"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblbaKbAEQV98W9aW",
+            "isReversed": false,
+            "prefersSingleRecordLink": true,
+            "inverseLinkFieldId": "fldRQdNA3KwV1mvcA"
+          },
+          "id": "fld5oXr74dkQUwKqu",
+          "name": "Project"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tbl03UhPCP6lzxF8t",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldbBB2P6VMq2OXnr"
+          },
+          "id": "fldGU3Jd7eZ8c5o9A",
+          "name": "Related Tasks"
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "selIYSMSN8eNbncaf",
+                "name": "Not Started",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selF1ddDQy0agcnaX",
+                "name": "On Track",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selm6ZDN8HuUZ0Poi",
+                "name": "At Risk",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selfaPjaHq0cFOtpf",
+                "name": "Delayed",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selq8HI3DyIZd2tQ1",
+                "name": "Achieved",
+                "color": "yellowLight2"
+              }
+            ]
+          },
+          "id": "fldRf7Ia4v1DnZHXf",
+          "name": "Status"
+        },
+        {
+          "type": "multilineText",
+          "id": "fldP8iIeaANCJw8mN",
+          "name": "Notes"
+        },
+        {
+          "type": "formula",
+          "options": {
+            "isValid": true,
+            "formula": "DATETIME_DIFF({fldgxOv7ikpSIWuRB}, TODAY(), 'days')",
+            "referencedFieldIds": [
+              "fldgxOv7ikpSIWuRB"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          },
+          "id": "fldF1nbiOn0kjWwRG",
+          "name": "Days Until Target"
+        },
+        {
+          "type": "count",
+          "options": {
+            "isValid": true,
+            "recordLinkFieldId": "fldGU3Jd7eZ8c5o9A"
+          },
+          "id": "fldMJyoVMYcUw7D9c",
+          "name": "Completed Tasks Count"
+        },
+        {
+          "type": "count",
+          "options": {
+            "isValid": true,
+            "recordLinkFieldId": "fldGU3Jd7eZ8c5o9A"
+          },
+          "id": "fldM6Q3HnDBRO6v9S",
+          "name": "Total Related Tasks"
+        },
+        {
+          "type": "formula",
+          "options": {
+            "isValid": true,
+            "formula": "IF({fldM6Q3HnDBRO6v9S}, {fldMJyoVMYcUw7D9c} / {fldM6Q3HnDBRO6v9S}, BLANK())",
+            "referencedFieldIds": [
+              "fldM6Q3HnDBRO6v9S",
+              "fldMJyoVMYcUw7D9c"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          },
+          "id": "fldpNGyi0FtBaj6Ru",
+          "name": "Tasks Completion %"
+        },
+        {
+          "type": "multipleLookupValues",
+          "options": {
+            "isValid": true,
+            "recordLinkFieldId": "fld5oXr74dkQUwKqu",
+            "fieldIdInLinkedTable": "fldLBTyil2lVEPN0g",
+            "result": {
+              "type": "singleLineText"
+            }
+          },
+          "id": "fldKkHX2leOlk2VFM",
+          "name": "Project Status"
+        },
+        {
+          "type": "multipleLookupValues",
+          "options": {
+            "isValid": true,
+            "recordLinkFieldId": "fld5oXr74dkQUwKqu",
+            "fieldIdInLinkedTable": "fldtDuNZZirOarKRa",
+            "result": {
+              "type": "date",
+              "options": {
+                "dateFormat": {
+                  "name": "us",
+                  "format": "M/D/YYYY"
+                }
+              }
+            }
+          },
+          "id": "flds20rZdnIbkx6pg",
+          "name": "Project End Date"
+        },
+        {
+          "type": "multipleLookupValues",
+          "options": {
+            "isValid": true,
+            "recordLinkFieldId": "fld5oXr74dkQUwKqu",
+            "fieldIdInLinkedTable": "fldRSU2rOYnYET434",
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          },
+          "id": "fld10jqvYll5Xnkek",
+          "name": "Project Budget"
+        },
+        {
+          "type": "formula",
+          "options": {
+            "isValid": true,
+            "formula": "AND({fldF1nbiOn0kjWwRG} > 0, {fldF1nbiOn0kjWwRG} <= 14)",
+            "referencedFieldIds": [
+              "fldF1nbiOn0kjWwRG"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          },
+          "id": "fldFwVhN5Xv7YVrv1",
+          "name": "Upcoming?"
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "selgR4jxscP91Rui4",
+                "name": "Low",
+                "color": "blueLight2"
+              },
+              {
+                "id": "sele4pWvRnf6CtOuJ",
+                "name": "Moderate",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selLy5mb4aGdAJ1un",
+                "name": "High",
+                "color": "tealLight2"
+              }
+            ]
+          },
+          "id": "fldlSa5k3haYIlYab",
+          "name": "Milestone Risk Level"
+        },
+        {
+          "type": "formula",
+          "options": {
+            "isValid": true,
+            "formula": "IF({fldRf7Ia4v1DnZHXf} != 'Achieved', IF(IS_BEFORE({fldgxOv7ikpSIWuRB}, TODAY()), 'Yes', 'No'), 'No')",
+            "referencedFieldIds": [
+              "fldRf7Ia4v1DnZHXf",
+              "fldgxOv7ikpSIWuRB"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          },
+          "id": "fld06tXeRSyH6Gs8z",
+          "name": "Is Overdue?"
+        },
+        {
+          "type": "rollup",
+          "options": {
+            "isValid": true,
+            "recordLinkFieldId": "fldGU3Jd7eZ8c5o9A",
+            "fieldIdInLinkedTable": "fldA8cdEIiTE7YHY9",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          },
+          "id": "flde1MG3HRbJx54Va",
+          "name": "Days Since Last Completed Task"
+        },
+        {
+          "type": "rollup",
+          "options": {
+            "isValid": true,
+            "recordLinkFieldId": "fldGU3Jd7eZ8c5o9A",
+            "fieldIdInLinkedTable": "fldxUPYn29A8ZCL5D",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "singleLineText"
+            }
+          },
+          "id": "fldjRhzqjruKkYSq6",
+          "name": "Last Task Status"
+        },
+        {
+          "type": "formula",
+          "options": {
+            "isValid": true,
+            "formula": "REPT('\u2588', ROUND({fldpNGyi0FtBaj6Ru}/10)) & REPT('\u2591', 10-ROUND({fldpNGyi0FtBaj6Ru}/10))",
+            "referencedFieldIds": [
+              "fldpNGyi0FtBaj6Ru"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          },
+          "id": "fldAekrSMAGPylRjq",
+          "name": "Completion Progress Bar"
+        },
+        {
+          "type": "multipleLookupValues",
+          "options": {
+            "isValid": true,
+            "recordLinkFieldId": "fld5oXr74dkQUwKqu",
+            "fieldIdInLinkedTable": "fldB9ea1L1L1GUCHq",
+            "result": {
+              "type": "multipleRecordLinks",
+              "options": {
+                "isReversed": false,
+                "prefersSingleRecordLink": false
+              }
+            }
+          },
+          "id": "fldUzx192o7YA6gZc",
+          "name": "Project Client Name"
+        },
+        {
+          "type": "multipleLookupValues",
+          "options": {
+            "isValid": true,
+            "recordLinkFieldId": "fld5oXr74dkQUwKqu",
+            "fieldIdInLinkedTable": "fldLEmWK0V3LnC8ra",
+            "result": {
+              "type": "multipleRecordLinks",
+              "options": {
+                "isReversed": false,
+                "prefersSingleRecordLink": false
+              }
+            }
+          },
+          "id": "fld1L8amkjBq3igY3",
+          "name": "Project Contacts (Names)"
+        },
+        {
+          "type": "rollup",
+          "options": {
+            "isValid": true,
+            "recordLinkFieldId": "fld5oXr74dkQUwKqu",
+            "fieldIdInLinkedTable": "fldRSU2rOYnYET434",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          },
+          "id": "fldxCog12z3PZLu7k",
+          "name": "Budget Spent (Rollup)"
+        },
+        {
+          "type": "count",
+          "options": {
+            "isValid": true,
+            "recordLinkFieldId": "fldGU3Jd7eZ8c5o9A"
+          },
+          "id": "fldl4twoSEmTryGpE",
+          "name": "Uncompleted Tasks"
+        },
+        {
+          "type": "aiText",
+          "options": {
+            "referencedFieldIds": [
+              "fldP8iIeaANCJw8mN",
+              "fldRf7Ia4v1DnZHXf"
+            ],
+            "prompt": [
+              "You are a professional project manager skilled at distilling key points and identifying project risks or decisions from project documentation. Focus on clarity and conciseness, using a neutral and informative tone suitable for project status reporting.\n\nTask description:\nCarefully read the provided milestone notes and current milestone status. Identify and summarize significant information, including any critical risks, major decisions, blockers, or action items mentioned. If no significant points are present, indicate that explicitly. Avoid repeating general status details unless they are directly relevant to key notes.\n\nOutput format:\nSummarize the most significant points, risks, or decisions as a plain text paragraph. Do not include headings, introductory phrases, or any extra commentary\u2014only the essential notes. If nothing significant is found, output \"No significant notes to summarize.\" For example: \"Client requested design changes. Budget approval delayed. Awaiting vendor feedback on supplies.\" (Typical output will be 1-3 sentences for standard notes.)\n\nContext and Data:\nMilestone Notes: ",
+              {
+                "field": {
+                  "fieldId": "fldP8iIeaANCJw8mN"
+                }
+              },
+              "\nMilestone Status: ",
+              {
+                "field": {
+                  "fieldId": "fldRf7Ia4v1DnZHXf"
+                }
+              },
+              "\n\nOutput:\n"
+            ]
+          },
+          "id": "fldJEMDgsrdF7pPcS",
+          "name": "Significant Notes Summary"
+        }
+      ],
+      "views": [
+        {
+          "id": "viwFNG3BrEWPFAKpL",
+          "name": "Grid view",
+          "type": "grid"
+        }
+      ]
+    }
+  ]
+}
