@@ -1,5 +1,7 @@
 import json
 import os
+import subprocess
+import tomllib
 from pathlib import Path
 from typing import Optional
 import httpx
@@ -22,11 +24,43 @@ load_dotenv()
 app = Typer()
 
 
+def get_version_string() -> str:
+    """Get version from pyproject.toml with git commit SHA if available."""
+    # Read version from pyproject.toml
+    pyproject_path = Path(__file__).parent / "pyproject.toml"
+    with open(pyproject_path, "rb") as f:
+        pyproject = tomllib.load(f)
+    version = pyproject.get("project", {}).get("version", "unknown")
+    
+    # Try to get git commit SHA
+    try:
+        commit_sha = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL,
+            text=True
+        ).strip()
+        # Check if there are uncommitted changes
+        dirty = subprocess.call(
+            ["git", "diff", "--quiet"],
+            stderr=subprocess.DEVNULL
+        ) != 0
+        
+        suffix = "-dirty" if dirty else ""
+        return f"v{version}-{commit_sha}{suffix}"
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        # Git not available or not a git repo
+        return f"v{version}"
+
+
 @app.command()
 def run_web():
-    # Start web server in the web/ directory
+    """Start web server with automatic version injection."""
     import http.server
     import socketserver
+    from urllib.parse import unquote
+
+    version_string = get_version_string()
+    print(f"Starting server with version: {version_string}")
 
     class Server(http.server.SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
@@ -40,6 +74,35 @@ def run_web():
             self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
             self.send_header("Pragma", "no-cache")
             self.send_header("Expires", "0")
+        
+        def do_GET(self):
+            # Inject version into index.html
+            if self.path == "/" or self.path == "/index.html":
+                try:
+                    file_path = Path("web") / "index.html"
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        content = f.read()
+                    
+                    # Replace version placeholder
+                    content = content.replace(
+                        '<span id="app-version">v0.1.0</span>',
+                        f'<span id="app-version">{version_string}</span>'
+                    )
+                    
+                    # Send response
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/html; charset=utf-8")
+                    self.send_header("Content-Length", str(len(content.encode('utf-8'))))
+                    self.send_my_headers()
+                    self.end_headers()
+                    self.wfile.write(content.encode('utf-8'))
+                    return
+                except Exception as e:
+                    print(f"Error injecting version: {e}")
+                    # Fall through to default handler
+            
+            # Default handling for all other files
+            super().do_GET()
 
     PORT = 8008
 

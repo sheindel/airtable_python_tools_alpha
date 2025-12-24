@@ -31,13 +31,43 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for git describe
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install tomli for version reading
+        run: pip install tomli
+      
+      - name: Inject version into HTML
+        run: |
+          # Read version from pyproject.toml and get git info
+          VERSION=$(python3 -c "import tomli; f=open('pyproject.toml','rb'); print(tomli.load(f)['project']['version'])")
+          COMMIT_SHA=$(git rev-parse --short HEAD)
+          
+          # Check if this is a tagged release
+          if git describe --exact-match --tags HEAD 2>/dev/null; then
+            VERSION_STRING="v${VERSION}"
+          else
+            VERSION_STRING="v${VERSION}-${COMMIT_SHA}"
+          fi
+          
+          echo "Deploying version: $VERSION_STRING"
+          
+          # Replace version in index.html
+          sed -i "s|<span id=\"app-version\">v0.1.0</span>|<span id=\"app-version\">${VERSION_STRING}</span>|g" web/index.html
+      
       - name: Setup Pages
         uses: actions/configure-pages@v5
+      
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
           path: './web'
+      
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
