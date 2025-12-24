@@ -1,48 +1,29 @@
 import "./components/ui/at-dropdown.js";
 import "./components/ui/theme-toggle.js";
 import "./components/ui/tab-manager.js";
-import { saveSchema, getSchema, getTables } from "./components/ui/schema-store.js";
+import { saveSchema, getSchema } from "./components/ui/schema-store.js";
 import { getDropdown, setDropdownOptions } from "./modules/dom-utils.js";
 import { toast } from "./modules/toast.js";
-import { downloadMermaidSVG, openInMermaidLive, copyMermaidText, toggleFullscreen, downloadMermaidText } from "./modules/mermaid-actions.js";
 import {
     updateCompressorFieldDropdown,
     updateOriginalFormulaDisplay,
-    updateOriginalFormulaFormat,
     onOutputFormatChange,
     onDisplayFormatChange,
-    compressFormula,
-    autoCompressFormula,
-    copyCompressedFormula,
-    generateTableReport,
     initializeCompressorDropdowns
 } from "./modules/compressor.js";
 import {
-    initializeAnalysisDropdowns,
-    generateTableComplexityCSV,
-    downloadTableComplexityCSV
+    initializeAnalysisDropdowns
 } from "./modules/table-analysis.js";
 import {
     initializeGrapherDropdowns,
     updateGrapherFieldDropdown,
-    onGrapherFieldSelected,
-    autoGenerateFormulaGraph,
-    downloadFormulaGrapherSVG,
-    openFormulaGrapherInMermaidLive,
-    copyFormulaGrapherMermaidText,
-    toggleFormulaGrapherFullscreen
+    onGrapherFieldSelected
 } from "./modules/grapher.js";
 import {
     initializeScorecardDropdowns,
-    refreshComplexityScorecard,
-    sortScorecardBy,
-    downloadComplexityCSV
 } from "./modules/scorecard.js";
 import {
     initializeUnusedDropdowns,
-    refreshUnusedFields,
-    sortUnusedBy,
-    downloadUnusedFieldsCSV
 } from "./modules/unused.js";
 import { wireActions } from "./modules/ui-events.js";
 import { buildActionHandlers, changeHandlers } from "./modules/action-handlers.js";
@@ -298,7 +279,7 @@ async function fetchSchema() {
 
 async function loadSampleSchema() {
     try {
-        const response = await fetch('sample_schema.json');
+        const response = await fetch('./sample_schema.json');
         if (!response.ok) {
             throw new Error(`Failed to load sample schema: ${response.statusText}`);
         }
