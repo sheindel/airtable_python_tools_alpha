@@ -298,7 +298,7 @@ async function fetchSchema() {
 
 async function loadSampleSchema() {
     try {
-        const response = await fetch('./sample_schema.json');
+        const response = await fetch('sample_schema.json');
         if (!response.ok) {
             throw new Error(`Failed to load sample schema: ${response.statusText}`);
         }
