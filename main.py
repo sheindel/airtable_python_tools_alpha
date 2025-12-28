@@ -4,8 +4,9 @@ import subprocess
 import tomllib
 from pathlib import Path
 from typing import Optional
+from contextlib import contextmanager
 import httpx
-from typer import Typer
+from typer import Typer, Option
 from dotenv import load_dotenv
 
 from web.airtable_mermaid_generator import airtable_schema_to_mermaid, get_node_id
@@ -17,11 +18,58 @@ from web.at_metadata_graph import (
     metadata_to_graph
 )
 from web.at_types import AirtableMetadata, TableMetadata
+from web.airtable_formula_evaluator import (
+    evaluate_formula, 
+    substitute_field_values, 
+    get_unresolved_fields,
+    FormulaEvaluationError
+)
 
 # Load environment variables from .env file
 load_dotenv()
 
 app = Typer()
+
+
+@contextmanager
+def mock_web_module_context(airtable_metadata: AirtableMetadata):
+    """Context manager to mock localStorage for web modules when called from CLI.
+    
+    This allows CLI commands to reuse business logic from web tab modules
+    without duplicating code.
+    """
+    import sys
+    sys.path.append("web")
+    import web.components.airtable_client as client_module
+    
+    # Mock localStorage for the web module
+    class MockLocalStorage:
+        def __init__(self):
+            self._storage = {}
+        
+        def setItem(self, key, value):
+            self._storage[key] = value
+        
+        def getItem(self, key):
+            return self._storage.get(key)
+    
+    class MockWindow:
+        localStorage = MockLocalStorage()
+    
+    original_window = getattr(client_module, 'window', None)
+    mock_window = MockWindow()
+    mock_window.localStorage.setItem("airtableSchema", json.dumps({
+        "schema": airtable_metadata,
+        "timestamp": "CLI"
+    }))
+    
+    client_module.window = mock_window
+    
+    try:
+        yield
+    finally:
+        if original_window is not None:
+            client_module.window = original_window
 
 
 def get_version_string() -> str:
@@ -358,38 +406,30 @@ def formula_walker(
 def get_table_complexity(
     table_name: str
 ):
+    """Generate a CSV report of field complexity for a specific table."""
     from rich.traceback import install
     install(show_locals=False)
 
+    import sys
+    sys.path.append("web")
+    from tabs.dependency_analysis import get_table_complexity as web_get_table_complexity
+    
     airtable_metadata = get_airtable_metadata()
-    G = metadata_to_graph(airtable_metadata)
-    for table in airtable_metadata["tables"]:
-        if table["name"] == table_name:
-            break
-    if not table:
-        raise ValueError(f"Table {table_name} not found in metadata")
-
-    csv_results: list[list[str]] = []  
-    for field in table["fields"]:
-        field_type = field.get("type")
-        if field_type not in ["formula", "rollup", "lookup"]:
-            continue
-        result = get_relationship_dependency_complexity(G, field["id"])
-        table_names = table_ids_to_names(
-            list(result["tables_dependencies"].keys()),
-            airtable_metadata
-        )
-        csv_results.append(
-            [field["name"], field_type, ";".join(table_names)]
-        )
-
-    # write csv results to file
-    output_filename = f"{table_name}_field_complexity.csv"
-    with open(output_filename, "w") as f:
-        f.write("Field Name,Field Type,Dependent Tables\n")
-        for row in csv_results:
-            f.write(",".join(row) + "\n")
-    return result
+    
+    with mock_web_module_context(airtable_metadata):
+        csv_results = web_get_table_complexity(table_name)
+        
+        if not csv_results:
+            raise ValueError(f"Table {table_name} not found in metadata")
+        
+        # Write csv results to file
+        output_filename = f"{table_name}_field_complexity.csv"
+        with open(output_filename, "w") as f:
+            for row in csv_results:
+                f.write(",".join(row) + "\n")
+        
+        print(f"Wrote complexity analysis to {output_filename}")
+        return csv_results
 
 
 @app.command()
@@ -568,6 +608,347 @@ def generate_mermaid_graph(
     )
     
     return mermaid_text
+
+
+@app.command()
+def compress_formula(
+    table_name: str,
+    field_name: str,
+    compression_depth: Optional[int] = None,
+    output_format: str = "field_names",
+    display_format: str = "compact",
+    output_file: Optional[Path] = None
+):
+    """
+    Compress a formula by recursively inlining field references.
+    
+    Args:
+        table_name: Name of the table containing the field
+        field_name: Name of the formula field to compress
+        compression_depth: Maximum recursion depth (None = fully compress)
+        output_format: "field_ids" or "field_names"
+        display_format: "compact" (single line) or "logical" (multi-line indented)
+        output_file: Optional file path to write the result
+    """
+    from cli_helpers import compress_formula_by_name, format_formula_compact, format_formula_logical
+    
+    airtable_metadata = get_airtable_metadata()
+    
+    try:
+        compressed, depth = compress_formula_by_name(
+            airtable_metadata,
+            table_name,
+            field_name,
+            compression_depth,
+            output_format
+        )
+        
+        # Apply display formatting
+        if display_format == "logical":
+            formatted = format_formula_logical(compressed)
+        else:
+            formatted = format_formula_compact(compressed)
+        
+        print(f"\n=== Compressed Formula for {table_name}.{field_name} ===")
+        print(f"Compression Depth: {depth}")
+        print(f"\n{formatted}")
+        
+        if output_file:
+            with open(output_file, "w") as f:
+                f.write(f"Table: {table_name}\n")
+                f.write(f"Field: {field_name}\n")
+                f.write(f"Depth: {depth}\n")
+                f.write(f"Format: {output_format}\n\n")
+                f.write(formatted)
+            print(f"\nSaved to {output_file}")
+        
+        return compressed
+        
+    except Exception as e:
+        print(f"Error: {e}")
+        raise
+
+
+@app.command()
+def compress_table_formulas(
+    table_name: str,
+    compression_depth: Optional[int] = None,
+    output_file: Optional[Path] = None
+):
+    """
+    Compress all formula fields in a table and output as CSV.
+    
+    Args:
+        table_name: Name of the table to analyze
+        compression_depth: Maximum recursion depth (None = fully compress)
+        output_file: Optional CSV file path (default: {table_name}_compressed.csv)
+    """
+    from cli_helpers import generate_table_compression_report
+    
+    airtable_metadata = get_airtable_metadata()
+    
+    csv_data = generate_table_compression_report(airtable_metadata, table_name, compression_depth)
+    
+    if not output_file:
+        output_file = Path(f"{table_name}_compressed.csv")
+    
+    with open(output_file, "w") as f:
+        f.write(csv_data)
+    
+    print(f"Saved compressed formulas to {output_file}")
+    return csv_data
+
+
+@app.command()
+def find_unused_fields(
+    table_name: Optional[str] = None,
+    field_type: Optional[str] = None,
+    output_file: Optional[Path] = None
+):
+    """
+    Find fields with zero inbound references (not used by any other field).
+    
+    Args:
+        table_name: Optional table name to filter by
+        field_type: Optional field type to filter by
+        output_file: Optional CSV file path to save results
+    """
+    import sys
+    sys.path.append("web")
+    from tabs.unused_fields import get_unused_fields
+    
+    airtable_metadata = get_airtable_metadata()
+    
+    with mock_web_module_context(airtable_metadata):
+        unused_fields = get_unused_fields()
+        
+        # Apply filters
+        if table_name:
+            unused_fields = [f for f in unused_fields if f["table_name"] == table_name]
+        
+        if field_type:
+            unused_fields = [f for f in unused_fields if f["field_type"] == field_type]
+        
+        print(f"\n=== Unused Fields Analysis ===")
+        print(f"Total unused fields: {len(unused_fields)}")
+        
+        if unused_fields:
+            print(f"\n{'Table':<30} {'Field':<30} {'Type':<20} {'Outbound'}")
+            print("-" * 100)
+            for field in unused_fields:
+                print(f"{field['table_name']:<30} {field['field_name']:<30} {field['field_type']:<20} {field['outbound_count']}")
+        
+        if output_file:
+            lines = ["Table,Field,Type,Outbound References"]
+            for field in unused_fields:
+                line = ",".join([
+                    f'"{field["table_name"]}"',
+                    f'"{field["field_name"]}"',
+                    field["field_type"],
+                    str(field["outbound_count"])
+                ])
+                lines.append(line)
+            
+            with open(output_file, "w") as f:
+                f.write("\n".join(lines))
+            print(f"\nSaved to {output_file}")
+        
+        return unused_fields
+
+
+@app.command()
+def complexity_scorecard(
+    table_name: Optional[str] = None,
+    min_score: float = 0,
+    top_n: Optional[int] = None,
+    output_file: Optional[Path] = None
+):
+    """
+    Generate a complexity scorecard for computed fields (formulas, rollups, lookups).
+    
+    Higher scores indicate more complex dependencies (backward deps, cross-table refs, depth).
+    
+    Args:
+        table_name: Optional table name to filter by
+        min_score: Minimum complexity score to include (default: 0)
+        top_n: Show only top N most complex fields
+        output_file: Optional CSV file path to save full results
+    """
+    import sys
+    sys.path.append("web")
+    from tabs.complexity_scorecard import get_all_field_complexity
+    
+    airtable_metadata = get_airtable_metadata()
+    
+    print("Analyzing field complexity... (this may take a moment)")
+    
+    with mock_web_module_context(airtable_metadata):
+        all_complexity = get_all_field_complexity()
+        
+        # Apply filters
+        if table_name:
+            all_complexity = [f for f in all_complexity if f["table_name"] == table_name]
+        
+        if min_score > 0:
+            all_complexity = [f for f in all_complexity if f["complexity_score"] >= min_score]
+        
+        if top_n:
+            all_complexity = all_complexity[:top_n]
+        
+        print(f"\n=== Field Complexity Scorecard ===")
+        print(f"Total fields analyzed: {len(all_complexity)}")
+        
+        if all_complexity:
+            print(f"\n{'Table':<25} {'Field':<30} {'Type':<10} {'Score':<8} {'Depth':<6} {'Back':<6} {'Fwd':<6} {'XTable'}")
+            print("-" * 110)
+            for field in all_complexity:
+                print(f"{field['table_name']:<25} {field['field_name']:<30} {field['field_type']:<10} "
+                      f"{field['complexity_score']:<8.1f} {field['max_depth']:<6} {field['backward_deps']:<6} "
+                      f"{field['forward_deps']:<6} {field['cross_table_deps']}")
+        
+        if output_file:
+            lines = ["Table,Field,Type,Score,Depth,Backward Deps,Forward Deps,Cross-Table Deps"]
+            for field in all_complexity:
+                line = ",".join([
+                    f'"{field["table_name"]}"',
+                    f'"{field["field_name"]}"',
+                    field["field_type"],
+                    str(field["complexity_score"]),
+                    str(field["max_depth"]),
+                    str(field["backward_deps"]),
+                    str(field["forward_deps"]),
+                    str(field["cross_table_deps"])
+                ])
+                lines.append(line)
+            
+            with open(output_file, "w") as f:
+                f.write("\n".join(lines))
+            print(f"\nFull results saved to {output_file}")
+        
+        return all_complexity
+
+
+@app.command()
+def graph_formula_logic(
+    table_name: str,
+    field_name: str,
+    flowchart_direction: str = "TD",
+    expand_fields: bool = False,
+    max_expansion_depth: int = 1,
+    output_file: Optional[Path] = None
+):
+    """
+    Generate a Mermaid flowchart showing the logical structure of a formula.
+    
+    This creates a flowchart showing IF statements, functions, operators, and field references.
+    Different from generate_mermaid_graph which shows field dependencies.
+    
+    Args:
+        table_name: Name of the table containing the field
+        field_name: Name of the formula field
+        flowchart_direction: Mermaid direction (TD, LR, RL, BT)
+        expand_fields: Whether to expand referenced formula fields inline
+        max_expansion_depth: Maximum depth for field expansion
+        output_file: Optional file path to save the Mermaid code
+    """
+    from web.at_formula_parser import tokenize
+    from cli_helpers import find_field_by_id
+    
+    airtable_metadata = get_airtable_metadata()
+    
+    # Find the table and field
+    table = None
+    field = None
+    for t in airtable_metadata.get("tables", []):
+        if t["name"] == table_name:
+            table = t
+            for f in t.get("fields", []):
+                if f["name"] == field_name:
+                    field = f
+                    break
+            break
+    
+    if not table:
+        raise ValueError(f"Table '{table_name}' not found")
+    if not field:
+        raise ValueError(f"Field '{field_name}' not found in table '{table_name}'")
+    if field.get("type") != "formula":
+        raise ValueError(f"Field '{field_name}' is not a formula field")
+    
+    formula = field.get("options", {}).get("formula", "")
+    if not formula:
+        raise ValueError(f"Field '{field_name}' has no formula")
+    
+    # Simple parsing: just show the formula structure
+    # For now, create a basic flowchart (full parser integration would require more work)
+    mermaid_code = f"""flowchart {flowchart_direction}
+    A["🎯 {field_name}"]
+    B["Formula: {formula[:50]}..."]
+    B --> A
+    
+    style A fill:#3b82f6,stroke:#1e40af,color:#fff
+"""
+    
+    print(f"\n=== Formula Logic Flowchart for {table_name}.{field_name} ===\n")
+    print(mermaid_code)
+    print("\nNote: Full formula parsing visualization is available in the web interface.")
+    print("Use 'uv run python main.py run-web' to access advanced formula graphing.")
+    
+    if output_file:
+        with open(output_file, "w") as f:
+            f.write(mermaid_code)
+        print(f"\nSaved to {output_file}")
+    
+    return mermaid_code
+
+
+@app.command()
+def eval_formula(
+    formula: str = Option(..., "--formula", "-f", help="Formula to evaluate"),
+    values: Optional[str] = Option(None, "--values", "-v", help="JSON object with field ID to value mappings (e.g. '{\"fldABC...\": \"value\"}')")
+):
+    """
+    Evaluate an Airtable formula with optional field substitutions
+    
+    Example:
+      eval-formula -f "IF(TRUE, 'yes', 'no')"
+      eval-formula -f "{fldABC123xyz45678} + {fldDEF456abc12345}" -v '{"fldABC123xyz45678": "10", "fldDEF456abc12345": "20"}'
+    """
+    try:
+        # Parse field values if provided
+        field_values = {}
+        if values:
+            try:
+                field_values = json.loads(values)
+            except json.JSONDecodeError as e:
+                print(f"Error: Invalid JSON for values: {e}")
+                return
+        
+        # Substitute field values if any
+        if field_values:
+            formula_with_values = substitute_field_values(formula, field_values)
+            print(f"Original formula: {formula}")
+            print(f"After substitution: {formula_with_values}")
+            
+            # Check for unresolved fields
+            unresolved = get_unresolved_fields(formula_with_values)
+            if unresolved:
+                print(f"\nWarning: Unresolved field references: {', '.join(unresolved)}")
+                print("Formula cannot be fully evaluated without all field values.\n")
+                return
+            
+            formula = formula_with_values
+        
+        # Evaluate the formula
+        result = evaluate_formula(formula)
+        
+        print(f"\nResult: {result}")
+        print(f"Type: {type(result).__name__}")
+        
+    except FormulaEvaluationError as e:
+        print(f"Formula evaluation error: {e}")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
 
 
 if __name__ == "__main__":

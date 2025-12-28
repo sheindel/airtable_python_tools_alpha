@@ -126,6 +126,14 @@
         });
     </script>
     <script src="script.js" type="module"></script>
+    <script>
+        // Global function for formula evaluator
+        function reloadFieldDependencies() {
+            if (window.loadFieldDependencies) {
+                window.loadFieldDependencies();
+            }
+        }
+    </script>
 </head>
 
 <body class="p-6 bg-gray-50 dark:bg-gray-900 font-sans transition-colors duration-200">
@@ -205,6 +213,10 @@
                         <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
                                 data-tab="unused-fields">
                             Unused Fields
+                        </button>
+                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
+                                data-tab="formula-evaluator">
+                            Formula Evaluator
                         </button>
                     </nav>
                 </div>
@@ -721,6 +733,50 @@
                             data-action="download-unused-csv">
                         Download CSV
                     </button>
+                </div>
+            </div>
+
+            <!-- Formula Evaluator Tab -->
+            <div id="formula-evaluator-tab" class="tab-content hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md transition-colors duration-200">
+                <h2 class="text-xl font-semibold mb-4 dark:text-white">Formula Evaluator</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">
+                    Test formulas by entering values for dependent fields and seeing the computed result.
+                </p>
+
+                <!-- Field Selection -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <at-dropdown id="eval-table-dropdown" label="Select Table:" placeholder="Search for a table"></at-dropdown>
+                    </div>
+                    <div>
+                        <at-dropdown id="eval-field-dropdown" label="Select Formula/Rollup Field:" placeholder="Search for a field"></at-dropdown>
+                    </div>
+                </div>
+
+                <!-- Options -->
+                <div class="border-2 border-gray-300 dark:border-gray-600 rounded-lg p-4 mb-6">
+                    <h3 class="text-lg font-semibold mb-3 dark:text-white flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                        </svg>
+                        Options
+                    </h3>
+                    
+                    <div>
+                        <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="eval-output-format">Field Reference Format:</label>
+                        <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="eval-output-format" onchange="reloadFieldDependencies()">
+                            <option value="field_ids">Field IDs (e.g., {fldXXX})</option>
+                            <option value="field_names" selected>Field Names (e.g., {Field Name})</option>
+                        </select>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Format for field references in formulas.</p>
+                    </div>
+                </div>
+
+                <!-- Result Container -->
+                <div id="eval-result" class="mt-6">
+                    <div class="text-center py-12 text-gray-500 dark:text-gray-400 italic">
+                        Select a formula or rollup field to begin
+                    </div>
                 </div>
             </div>
         </div>

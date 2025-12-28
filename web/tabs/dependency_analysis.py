@@ -1,5 +1,9 @@
 """Table Analysis Tab - Analyze table complexity and external dependencies"""
-from pyscript import document, window
+try:
+    from pyscript import document, window
+    _HAS_PYSCRIPT = True
+except ImportError:
+    _HAS_PYSCRIPT = False
 
 import sys
 sys.path.append("web")
@@ -83,8 +87,6 @@ def initialize():
     """Initialize the Table Analysis tab"""
     print("Table Analysis tab initialized")
     
-    # Export functions to JavaScript
-    from pyscript import window
-    window.getTableComplexityData = get_table_complexity
-    
-    pass
+    # Export functions to JavaScript (only in PyScript context)
+    if _HAS_PYSCRIPT:
+        window.getTableComplexityData = get_table_complexity

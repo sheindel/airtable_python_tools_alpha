@@ -13,7 +13,7 @@ import pyodide
 from pyscript import window
 
 # Import tab modules
-from tabs import dependency_mapper, dependency_analysis, formula_grapher, formula_compressor, complexity_scorecard, unused_fields
+from tabs import dependency_mapper, dependency_analysis, formula_grapher, formula_compressor, complexity_scorecard, unused_fields, formula_evaluator
 
 # Store current active tab
 current_tab = "dependency-mapper"
@@ -30,6 +30,7 @@ def initialize_tabs():
     formula_compressor.initialize()
     complexity_scorecard.initialize()
     unused_fields.initialize()
+    formula_evaluator.initialize()
     
     print("All tabs initialized")
 

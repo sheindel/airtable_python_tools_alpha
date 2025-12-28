@@ -1,5 +1,9 @@
 """Unused Field Detector Tab - Find fields with zero inbound references for cleanup"""
-from pyscript import window
+try:
+    from pyscript import window
+    _HAS_PYSCRIPT = True
+except ImportError:
+    _HAS_PYSCRIPT = False
 import json
 
 import sys
@@ -272,9 +276,10 @@ def initialize():
     """Initialize the Unused Fields tab"""
     print("Unused Fields Detector tab initialized")
     
-    # Export functions to JavaScript
-    window.getUnusedFieldsData = get_unused_fields_data
-    window.getUnusedFieldsSummary = get_unused_fields_summary
-    window.getFieldTypesForDropdown = get_field_types_for_dropdown
-    window.exportUnusedFieldsCSV = export_unused_fields_csv
-    window.getTableNamesForUnused = lambda: [t["name"] for t in get_local_storage_metadata().get("tables", [])] if get_local_storage_metadata() else []
+    # Export functions to JavaScript (only in PyScript context)
+    if _HAS_PYSCRIPT:
+        window.getUnusedFieldsData = get_unused_fields_data
+        window.getUnusedFieldsSummary = get_unused_fields_summary
+        window.getFieldTypesForDropdown = get_field_types_for_dropdown
+        window.exportUnusedFieldsCSV = export_unused_fields_csv
+        window.getTableNamesForUnused = lambda: [t["name"] for t in get_local_storage_metadata().get("tables", [])] if get_local_storage_metadata() else []

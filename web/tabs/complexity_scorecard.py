@@ -1,5 +1,9 @@
 """Field Complexity Scorecard Tab - Identify and analyze the most complex fields in your base"""
-from pyscript import window
+try:
+    from pyscript import window
+    _HAS_PYSCRIPT = True
+except ImportError:
+    _HAS_PYSCRIPT = False
 import json
 
 import sys
@@ -367,8 +371,9 @@ def initialize():
     """Initialize the Complexity Scorecard tab"""
     print("Complexity Scorecard tab initialized")
     
-    # Export functions to JavaScript
-    window.getComplexityScorecardData = get_complexity_scorecard_data
-    window.getComplexitySummary = get_complexity_summary
-    window.getTableNamesForScorecard = get_table_names_for_dropdown
-    window.exportComplexityCSV = export_complexity_to_csv
+    # Export functions to JavaScript (only in PyScript context)
+    if _HAS_PYSCRIPT:
+        window.getComplexityScorecardData = get_complexity_scorecard_data
+        window.getComplexitySummary = get_complexity_summary
+        window.getTableNamesForScorecard = get_table_names_for_dropdown
+        window.exportComplexityCSV = export_complexity_to_csv

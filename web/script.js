@@ -119,6 +119,26 @@ addEventListener('py:ready', () => {
             }
         });
     }
+
+    // Handle dynamically created eval-calculate-btn
+    document.addEventListener('click', (event) => {
+        if (event.target.id === 'eval-calculate-btn') {
+            const fieldId = event.target.dataset.fieldId;
+            const dependenciesJson = event.target.dataset.dependencies;
+            const outputFormatSelect = document.getElementById('eval-output-format');
+            const outputFormat = outputFormatSelect ? outputFormatSelect.value : 'field_names';
+            try {
+                const dependencies = JSON.parse(dependenciesJson);
+                if (window.evaluateFormulaWithValues) {
+                    window.evaluateFormulaWithValues(fieldId, dependencies, outputFormat);
+                } else {
+                    console.warn('evaluateFormulaWithValues is not available yet');
+                }
+            } catch (error) {
+                console.error('Error calling evaluateFormulaWithValues:', error);
+            }
+        }
+    });
 });
 
 let fieldOptions = [];
@@ -170,6 +190,8 @@ function wireDropdowns() {
     const analysisTableDropdown = getDropdown("analysis-table-dropdown");
     const grapherTableDropdown = getDropdown("grapher-table-dropdown");
     const grapherFieldDropdown = getDropdown("grapher-field-dropdown");
+    const evalTableDropdown = getDropdown("eval-table-dropdown");
+    const evalFieldDropdown = getDropdown("eval-field-dropdown");
 
     if (tableDropdown) {
         tableDropdown.addEventListener('select', (event) => {
@@ -235,6 +257,30 @@ function wireDropdowns() {
         grapherFieldDropdown.addEventListener('select', (event) => {
             if (event.detail && event.detail.tableName && event.detail.text) {
                 onGrapherFieldSelected(event.detail.tableName, event.detail.text);
+            }
+        });
+    }
+
+    if (evalTableDropdown) {
+        evalTableDropdown.addEventListener('select', (event) => {
+            if (event.detail && event.detail.id) {
+                updateEvalFieldDropdown(event.detail.id);
+            }
+        });
+    }
+
+    if (evalFieldDropdown) {
+        evalFieldDropdown.addEventListener('select', (event) => {
+            if (event.detail && event.detail.id) {
+                try {
+                    if (window.loadFieldDependencies) {
+                        window.loadFieldDependencies();
+                    } else {
+                        console.warn('loadFieldDependencies is not available yet');
+                    }
+                } catch (error) {
+                    console.error('Error calling loadFieldDependencies:', error);
+                }
             }
         });
     }
@@ -311,6 +357,7 @@ function updateSchemaInfo() {
 
     tableOptions.sort((a, b) => a.text.localeCompare(b.text));
     setDropdownOptions("table-dropdown", tableOptions);
+    setDropdownOptions("eval-table-dropdown", tableOptions);
     initializeCompressorDropdowns();
     initializeAnalysisDropdowns();
     initializeGrapherDropdowns();
@@ -345,4 +392,30 @@ function updateFieldDropdown(tableId) {
     }
 
     setDropdownOptions("field-dropdown", fieldOptions);
+}
+
+function updateEvalFieldDropdown(tableId) {
+    const schemaData = getSchema();
+    const evalFieldDropdown = getDropdown("eval-field-dropdown");
+    const fieldOptions = [];
+
+    const selectedTable = schemaData?.schema?.tables?.find(table => table.id === tableId);
+    selectedTable?.fields.forEach(field => {
+        // Only include formula and rollup fields
+        if (field.type === "formula" || field.type === "rollup") {
+            fieldOptions.push({
+                id: field.id,
+                text: field.name,
+                tableId
+            });
+        }
+    });
+
+    fieldOptions.sort((a, b) => a.text.localeCompare(b.text));
+
+    if (evalFieldDropdown) {
+        evalFieldDropdown.value = "";
+    }
+
+    setDropdownOptions("eval-field-dropdown", fieldOptions);
 }
