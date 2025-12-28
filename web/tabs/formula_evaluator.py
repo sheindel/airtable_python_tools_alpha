@@ -231,6 +231,11 @@ def load_field_dependencies():
         result_div = document.getElementById("eval-result")
         result_div.innerHTML = "".join(html_parts)
         
+        # Clear any previous evaluation results
+        eval_output_div = document.getElementById("eval-output")
+        if eval_output_div:
+            eval_output_div.innerHTML = ""
+        
         # Restore saved input values
         for field_id, value in saved_values.items():
             input_elem = document.getElementById(f"input-{field_id}")
@@ -373,8 +378,14 @@ def evaluate_formula_with_values(field_id: str, dependency_ids: list, output_for
                     </div>
                 """
         
-        # Append result to the existing content
-        result_div.innerHTML += result_html
+        # Write result to the separate output container
+        eval_output_div = document.getElementById("eval-output")
+        if eval_output_div:
+            eval_output_div.innerHTML = result_html
+        else:
+            # Fallback: append to result_div if output div doesn't exist
+            result_div = document.getElementById("eval-result")
+            result_div.innerHTML += result_html
         
     except Exception as e:
         import traceback
