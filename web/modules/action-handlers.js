@@ -1,7 +1,7 @@
 import { copyToClipboard } from "./dom-utils.js";
 import { downloadMermaidSVG, openInMermaidLive, copyMermaidText, toggleFullscreen, downloadMermaidText } from "./mermaid-actions.js";
 import { generateTableReport } from "./compressor.js";
-import { generateTableComplexityCSV, downloadTableComplexityCSV } from "./table-analysis.js";
+import { generateTableDependencies, downloadTableDependenciesCSV } from "./table-analysis.js";
 import {
     downloadFormulaGrapherSVG,
     openFormulaGrapherInMermaidLive,
@@ -28,8 +28,8 @@ export function buildActionHandlers(fetchSchema, loadSampleSchema) {
         "copy-mermaid": copyMermaidText,
         "toggle-mermaid-fullscreen": toggleFullscreen,
         "download-mermaid-text": downloadMermaidText,
-        "generate-table-complexity": generateTableComplexityCSV,
-        "download-table-complexity": downloadTableComplexityCSV,
+        "generate-table-dependencies": generateTableDependencies,
+        "download-table-dependencies-csv": downloadTableDependenciesCSV,
         "copy-grapher-mermaid": copyFormulaGrapherMermaidText,
         "download-grapher-svg": downloadFormulaGrapherSVG,
         "open-grapher-live": openFormulaGrapherInMermaidLive,

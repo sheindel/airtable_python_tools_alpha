@@ -105,6 +105,88 @@
         .dark .loading-text {
             color: #60a5fa;
         }
+
+        /* Custom scrollbar styling for dark mode */
+        ::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 6px;
+        }
+
+        .dark ::-webkit-scrollbar-track {
+            background: #374151;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .dark ::-webkit-scrollbar-thumb {
+            background: #6b7280;
+        }
+
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+
+        /* Firefox scrollbar styling */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #888 #f1f1f1;
+        }
+
+        .dark * {
+            scrollbar-color: #6b7280 #374151;
+        }
+
+        /* Sortable column headers */
+        .sortable-header {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            padding-right: 20px;
+        }
+
+        .sortable-header:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .dark .sortable-header:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .sort-indicator {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.5;
+        }
+
+        .sortable-header.sorted-asc .sort-indicator::after {
+            content: '▲';
+            opacity: 1;
+        }
+
+        .sortable-header.sorted-desc .sort-indicator::after {
+            content: '▼';
+            opacity: 1;
+        }
+
+        .sortable-header:not(.sorted-asc):not(.sorted-desc) .sort-indicator::after {
+            content: '▲▼';
+            font-size: 0.6em;
+            line-height: 1;
+        }
     </style>
     <script type="module">
         const loading = document.getElementById('loading');
@@ -188,33 +270,49 @@
         <at-tab-manager active="dependency-mapper" id="tab-manager">
             <!-- Tab Navigation -->
             <div id="tab-navigation" class="bg-white dark:bg-gray-800 rounded-lg shadow-md mb-6 transition-colors duration-200 hidden">
-                <div class="border-b border-gray-200 dark:border-gray-700">
-                    <nav class="flex -mb-px">
-                        <button class="tab-button active px-6 py-3 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400" 
+                <!-- Mobile Dropdown (visible on small screens) -->
+                <div class="md:hidden p-4">
+                    <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="mobile-tab-selector">Select Tool:</label>
+                    <select id="mobile-tab-selector" 
+                            class="w-full p-2.5 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white text-base">
+                        <option value="dependency-mapper">Dependency Mapper</option>
+                        <option value="dependency-analysis">Table Dependencies</option>
+                        <option value="formula-grapher">Formula Grapher</option>
+                        <option value="formula-compressor">Formula Compressor</option>
+                        <option value="complexity-scorecard">Complexity Scorecard</option>
+                        <option value="unused-fields">Unused Fields</option>
+                        <option value="formula-evaluator">Formula Evaluator</option>
+                    </select>
+                </div>
+                
+                <!-- Desktop Tabs (hidden on small screens) -->
+                <div class="border-b border-gray-200 dark:border-gray-700 hidden md:block">
+                    <nav class="flex -mb-px overflow-x-auto">
+                        <button class="tab-button active px-6 py-3 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400 whitespace-nowrap" 
                                 data-tab="dependency-mapper">
                             Dependency Mapper
                         </button>
-                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
+                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600 whitespace-nowrap" 
                                 data-tab="dependency-analysis">
-                            Table Analysis
+                            Table Dependencies
                         </button>
-                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
+                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600 whitespace-nowrap" 
                                 data-tab="formula-grapher">
                             Formula Grapher
                         </button>
-                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
+                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600 whitespace-nowrap" 
                                 data-tab="formula-compressor">
                             Formula Compressor
                         </button>
-                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
+                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600 whitespace-nowrap" 
                                 data-tab="complexity-scorecard">
                             Complexity Scorecard
                         </button>
-                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
+                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600 whitespace-nowrap" 
                                 data-tab="unused-fields">
                             Unused Fields
                         </button>
-                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600" 
+                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600 whitespace-nowrap" 
                                 data-tab="formula-evaluator">
                             Formula Evaluator
                         </button>
@@ -304,37 +402,56 @@
                 </div>
             </div>
 
-            <!-- Table Analysis Tab -->
+            <!-- Table Dependencies Tab -->
             <div id="dependency-analysis-tab" class="tab-content hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md transition-colors duration-200">
-                <h2 class="text-xl font-semibold mb-4 dark:text-white">Table Analysis</h2>
-                <p class="text-gray-600 dark:text-gray-400 mb-4">Analyze table complexity and external dependencies in your base structure.</p>
-                
-                <!-- Table Selection -->
-                <div class="mb-4">
-                    <at-dropdown id="analysis-table-dropdown" label="Select Table:" placeholder="Search for a table"></at-dropdown>
-                </div>
+                <h2 class="text-xl font-semibold mb-4 dark:text-white">Table Dependencies</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">Analyze table-to-table relationships and dependencies in your base structure.</p>
                 
                 <!-- Action Button -->
                 <div class="mb-4">
-                        <button id="generate-table-complexity-btn" 
-                            class="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
-                            data-action="generate-table-complexity" 
-                            disabled>
-                        Field -> Table Dependencies
+                    <button id="generate-table-dependencies-btn" 
+                        class="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
+                        data-action="generate-table-dependencies" 
+                        disabled>
+                        Analyze All Table Dependencies
                     </button>
                 </div>
                 
                 <!-- Results Display -->
-                <div id="analysis-results" class="hidden">
-                    <h3 class="text-lg font-semibold mb-2 dark:text-white">Analysis Results</h3>
-                    <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded">
-                        <pre id="analysis-csv-output" class="text-sm overflow-x-auto dark:text-gray-200"></pre>
-                    </div>
-                    <div class="mt-4">
-                        <button class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150" data-action="download-table-complexity">
+                <div id="dependencies-results" class="hidden">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                        <div class="flex-1 w-full">
+                            <h4 class="text-md font-semibold dark:text-white mb-2">Dependency Matrix</h4>
+                            <!-- Filter Controls -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1" for="filter-source-table">Filter Source Table:</label>
+                                    <input type="text" 
+                                           id="filter-source-table" 
+                                           placeholder="Type to filter..."
+                                           class="w-full p-2 text-sm border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1" for="filter-target-table">Filter Target Table:</label>
+                                    <input type="text" 
+                                           id="filter-target-table" 
+                                           placeholder="Type to filter..."
+                                           class="w-full p-2 text-sm border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                </div>
+                                <div class="flex items-end">
+                                    <button id="clear-filters-btn"
+                                            class="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-3 rounded-lg shadow-sm hover:shadow transition-all duration-150 text-sm">
+                                        Clear Filters
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150 whitespace-nowrap" 
+                            data-action="download-table-dependencies-csv">
                             Download CSV
                         </button>
                     </div>
+                    <div id="dependencies-table-container" class="mb-4"></div>
                 </div>
             </div>
 

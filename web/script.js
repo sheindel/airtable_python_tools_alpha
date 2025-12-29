@@ -187,7 +187,6 @@ function wireDropdowns() {
     const fieldDropdown = getDropdown("field-dropdown");
     const compressorTableDropdown = getDropdown("compressor-table-dropdown");
     const compressorFieldDropdown = getDropdown("compressor-field-dropdown");
-    const analysisTableDropdown = getDropdown("analysis-table-dropdown");
     const grapherTableDropdown = getDropdown("grapher-table-dropdown");
     const grapherFieldDropdown = getDropdown("grapher-field-dropdown");
     const evalTableDropdown = getDropdown("eval-table-dropdown");
@@ -232,15 +231,6 @@ function wireDropdowns() {
         compressorFieldDropdown.addEventListener('select', (event) => {
             if (event.detail && event.detail.tableId && event.detail.id) {
                 updateOriginalFormulaDisplay(event.detail.tableId, event.detail.id, event.detail.formula);
-            }
-        });
-    }
-
-    if (analysisTableDropdown) {
-        analysisTableDropdown.addEventListener('select', () => {
-            const generateBtn = document.getElementById("generate-table-complexity-btn");
-            if (generateBtn) {
-                generateBtn.disabled = false;
             }
         });
     }
@@ -359,8 +349,13 @@ function updateSchemaInfo() {
     setDropdownOptions("table-dropdown", tableOptions);
     setDropdownOptions("eval-table-dropdown", tableOptions);
     initializeCompressorDropdowns();
-    initializeAnalysisDropdowns();
     initializeGrapherDropdowns();
+    
+    // Enable table dependencies button (doesn't require dropdown selection)
+    const tableDepsBtn = document.getElementById("generate-table-dependencies-btn");
+    if (tableDepsBtn && tables.length > 0) {
+        tableDepsBtn.disabled = false;
+    }
 }
 
 function updateFieldDropdown(tableId) {

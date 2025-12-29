@@ -631,4 +631,82 @@ def _format_edge(relationship: str) -> str:
         "modified_time": "-->",
     }
     return edge_styles.get(relationship, "-->")
+
+
+def get_table_to_table_dependencies(metadata: AirtableMetadata) -> dict:
+    """
+    Analyze all table-to-table dependencies in the base.
+    
+    Returns a dictionary where each table has counts of relationships to other tables:
+    {
+        "Table A": {
+            "Table B": {"links": 2, "rollups": 1, "lookups": 0},
+            "Table C": {"links": 1, "rollups": 0, "lookups": 1}
+        }
+    }
+    
+    Args:
+        metadata: AirtableMetadata instance
+        
+    Returns:
+        dict: Nested dictionary of table dependencies with relationship counts
+    """
+    G = metadata_to_graph(metadata)
+    
+    # Build a table name lookup
+    table_id_to_name = {}
+    for table in metadata["tables"]:
+        table_id_to_name[table["id"]] = table["name"]
+    
+    # Track dependencies: source_table -> target_table -> relationship_type -> count
+    dependencies = {}
+    
+    for table in metadata["tables"]:
+        table_name = table["name"]
+        dependencies[table_name] = {}
+        
+        for field in table["fields"]:
+            field_id = field["id"]
+            field_type = field.get("type")
+            
+            # Analyze different relationship types
+            if field_type == "multipleRecordLinks":
+                # Direct link to another table
+                linked_table_id = field["options"].get("linkedTableId")
+                if linked_table_id and linked_table_id in table_id_to_name:
+                    target_table = table_id_to_name[linked_table_id]
+                    if target_table not in dependencies[table_name]:
+                        dependencies[table_name][target_table] = {"links": 0, "rollups": 0, "lookups": 0}
+                    dependencies[table_name][target_table]["links"] += 1
+                    
+            elif field_type == "rollup":
+                # Rollup depends on a field in a linked table
+                record_link_id = field["options"].get("recordLinkFieldId")
+                if record_link_id and record_link_id in G.nodes:
+                    link_field_data = G.nodes[record_link_id]
+                    if link_field_data.get("field_type") == "multipleRecordLinks":
+                        linked_table_id = link_field_data.get("metadata", {}).get("options", {}).get("linkedTableId")
+                        if linked_table_id and linked_table_id in table_id_to_name:
+                            target_table = table_id_to_name[linked_table_id]
+                            if target_table not in dependencies[table_name]:
+                                dependencies[table_name][target_table] = {"links": 0, "rollups": 0, "lookups": 0}
+                            dependencies[table_name][target_table]["rollups"] += 1
+                            
+            elif field_type == "multipleLookupValues":
+                # Lookup depends on a field in a linked table
+                record_link_id = field["options"].get("recordLinkFieldId")
+                if record_link_id and record_link_id in G.nodes:
+                    link_field_data = G.nodes[record_link_id]
+                    if link_field_data.get("field_type") == "multipleRecordLinks":
+                        linked_table_id = link_field_data.get("metadata", {}).get("options", {}).get("linkedTableId")
+                        if linked_table_id and linked_table_id in table_id_to_name:
+                            target_table = table_id_to_name[linked_table_id]
+                            if target_table not in dependencies[table_name]:
+                                dependencies[table_name][target_table] = {"links": 0, "rollups": 0, "lookups": 0}
+                            dependencies[table_name][target_table]["lookups"] += 1
+    
+    # Remove entries with no dependencies
+    dependencies = {k: v for k, v in dependencies.items() if v}
+    
+    return dependencies
     
