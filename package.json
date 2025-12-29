@@ -1,0 +1,20 @@
+{
+  "name": "airtable-analysis-tools",
+  "version": "0.3.0",
+  "description": "Airtable base analysis and visualization tools",
+  "scripts": {
+    "build:css": "tailwindcss -i ./web/input.css -o ./web/output.css --minify",
+    "watch:css": "tailwindcss -i ./web/input.css -o ./web/output.css --watch",
+    "dev": "npm run watch:css"
+  },
+  "keywords": [
+    "airtable",
+    "analysis",
+    "visualization"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}

@@ -179,11 +179,13 @@ cython_debug/
 # Build artifacts
 node_modules/
 web/output.css
-package-lock.json
 
 # Ignore potential output files
 # Ignore all JSON except for web/samples_schema.json
-/*.json
+crm_schema.json
+demo_base_schema.json
+issues_schema.json
+blog_metadata.json
 
 *.csv
 .~lock*
