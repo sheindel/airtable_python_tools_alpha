@@ -176,6 +176,11 @@ cython_debug/
 # AI/LLM notes and analysis
 .ai_notes/
 
+# Build artifacts
+node_modules/
+web/output.css
+package-lock.json
+
 # Ignore potential output files
 # Ignore all JSON except for web/samples_schema.json
 /*.json

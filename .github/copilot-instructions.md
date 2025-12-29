@@ -39,6 +39,18 @@ Six independent tabs ([web/tabs/](web/tabs/)) initialized by [web/main.py](web/m
 
 ## Development Workflows
 
+### Building Assets
+```bash
+# Build optimized Tailwind CSS (required before running)
+npm run build:css
+
+# Watch mode for development
+npm run watch:css
+
+# Generate PyScript config (auto-run in CI)
+uv run python scripts/generate_pyscript_config.py
+```
+
 ### Running the Web App
 ```bash
 uv run python main.py run-web
@@ -47,9 +59,25 @@ Serves at `http://localhost:8008` with aggressive cache-busting headers. Watch b
 
 ### Environment Setup
 ```bash
-uv sync  # Install dependencies via uv (not pip)
+uv sync              # Install Python dependencies
+uv sync --group dev  # Install dev dependencies (pytest, etc.)
+npm install          # Install Node dependencies (Tailwind CLI)
+npm run build:css    # Build Tailwind CSS
 ```
 Project requires Python ≥3.12, managed by `uv` (not virtualenv/poetry).
+
+### Testing
+```bash
+# Run Python unit tests
+uv run pytest
+
+# Run with coverage
+uv run pytest --cov=web --cov-report=html
+
+# Run specific test file
+uv run pytest tests/test_at_metadata_graph.py
+```
+See [tests/README.md](tests/README.md) for more details.
 
 ### Adding a Web Tab
 1. Create `web/tabs/new_tab.py` with `initialize()` function
@@ -79,6 +107,24 @@ def initialize():
 - Store/retrieve data via `localStorage` (see [web/components/airtable_client.py](web/components/airtable_client.py))
 
 ## Project-Specific Conventions
+
+### Shared Constants
+Use constants from [web/constants.py](web/constants.py) instead of magic strings:
+```python
+from constants import FIELD_TYPE_FORMULA, COMPUTED_FIELD_TYPES, ERROR_NO_METADATA
+```
+
+### Error Handling
+Use standardized error handling from [web/components/error_handling.py](web/components/error_handling.py):
+```python
+from components.error_handling import handle_tab_error, display_error_in_element, validate_metadata
+
+try:
+    metadata = validate_metadata(get_metadata())
+    # ... operation
+except AnalysisError as e:
+    handle_tab_error(e, "generating diagram", "output-element-id")
+```
 
 ### Airtable Field Reference Formats
 Field IDs like `{fld[A-Za-z0-9]{14}}` appear throughout:
@@ -152,6 +198,29 @@ def _compress_formula_recursive(formula, metadata, max_depth, output_format, dep
 ### Module Path Management
 All web modules use `sys.path.append("web")` to import shared modules. This is required for PyScript's import system.
 
+## Build System
+
+### Tailwind CSS Pipeline
+- Source: [web/input.css](web/input.css) (Tailwind directives)
+- Config: [tailwind.config.js](tailwind.config.js) (scans `web/**/*.{html,js,py}`)
+- Output: `web/output.css` (27KB minified, gitignored)
+- Build: `npm run build:css` (required before running app)
+- CI: Runs automatically in GitHub Actions before deployment
+
+### PyScript Configuration
+- Generator: [scripts/generate_pyscript_config.py](scripts/generate_pyscript_config.py)
+- Auto-discovers all `.py` files in [web/](web/) directory
+- Updates [web/pyscript.toml](web/pyscript.toml) `[files]` section
+- Run manually: `uv run python scripts/generate_pyscript_config.py`
+- CI: Runs automatically in GitHub Actions
+
+### GitHub Actions Workflow
+1. Install Node.js and run `npm ci`
+2. Build Tailwind CSS with `npm run build:css`
+3. Install Python and generate PyScript config
+4. Inject version number into HTML
+5. Deploy to GitHub Pages
+
 ## Key Implementation Details
 
 ### Field Type Handling
@@ -184,12 +253,28 @@ Access patterns: Always iterate `metadata["tables"]` then `table["fields"]`, not
 
 ## Testing
 
-Manual testing via browser:
-1. Enter Base ID and Personal Access Token
-2. Click "Refresh Schema" to load metadata
-3. Test each tab independently
+### Running Tests
+```bash
+# Run all Python unit tests
+uv run pytest
 
-No automated test suite currently. Test files like [test_formula_compressor.py](test_formula_compressor.py) are proof-of-concept scripts, not pytest.
+# Run with coverage report
+uv run pytest --cov=web --cov-report=html
+
+# Run specific test
+uv run pytest tests/test_at_metadata_graph.py -v
+```
+
+### Test Organization
+- [tests/conftest.py](tests/conftest.py): Shared fixtures
+- [tests/test_at_metadata_graph.py](tests/test_at_metadata_graph.py): Graph operations
+- [tests/test_constants.py](tests/test_constants.py): Constants validation
+- See [tests/README.md](tests/README.md) for detailed documentation
+
+### Coverage Goals
+- Core business logic: 80%+
+- Graph operations: 90%+
+- Error handling: 70%+
 
 ## Common Pitfalls
 
@@ -274,6 +359,9 @@ Copy/action buttons use glassmorphism:
                opacity-0 hover:opacity-100 focus:opacity-100"
         style="backdrop-filter: blur(4px);">
 ```
+
+### Important Note
+**Always run `npm run build:css` after modifying Tailwind classes** to regenerate the optimized CSS file.
 
 ## File Organization Logic
 

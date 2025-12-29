@@ -34,13 +34,27 @@ jobs:
         with:
           fetch-depth: 0  # Fetch all history for git describe
       
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install Node dependencies
+        run: npm ci
+      
+      - name: Build Tailwind CSS
+        run: npm run build:css
+      
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       
       - name: Install tomli for version reading
-        run: pip install tomli
+        run: pip install tomli tomli-w
+      
+      - name: Generate PyScript configuration
+        run: python scripts/generate_pyscript_config.py
       
       - name: Inject version into HTML
         run: |

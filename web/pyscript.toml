@@ -1,25 +1,26 @@
 name = "Airtable Analysis Tools"
 version = "0.2.0"
 description = "Multiple tools for analyzing Airtable bases: Dependency Mapping, Analysis, Formula Graphing, and Compression"
-
 debug = true
-
-packages = ["networkx"]
+packages = [
+    "networkx",
+]
 
 [files]
+"./__init__.py" = "__init__.py"
+"./airtable_formula_evaluator.py" = "airtable_formula_evaluator.py"
 "./airtable_mermaid_generator.py" = "airtable_mermaid_generator.py"
+"./at_formula_parser.py" = "at_formula_parser.py"
 "./at_metadata_graph.py" = "at_metadata_graph.py"
 "./at_types.py" = "at_types.py"
-"./at_formula_parser.py" = "at_formula_parser.py"
-"./airtable_formula_evaluator.py" = "airtable_formula_evaluator.py"
 "./components/__init__.py" = "components/__init__.py"
 "./components/airtable_client.py" = "components/airtable_client.py"
 "./components/ui_helpers.py" = "components/ui_helpers.py"
 "./tabs/__init__.py" = "tabs/__init__.py"
-"./tabs/dependency_mapper.py" = "tabs/dependency_mapper.py"
-"./tabs/dependency_analysis.py" = "tabs/dependency_analysis.py"
-"./tabs/formula_grapher.py" = "tabs/formula_grapher.py"
-"./tabs/formula_compressor.py" = "tabs/formula_compressor.py"
 "./tabs/complexity_scorecard.py" = "tabs/complexity_scorecard.py"
-"./tabs/unused_fields.py" = "tabs/unused_fields.py"
+"./tabs/dependency_analysis.py" = "tabs/dependency_analysis.py"
+"./tabs/dependency_mapper.py" = "tabs/dependency_mapper.py"
+"./tabs/formula_compressor.py" = "tabs/formula_compressor.py"
 "./tabs/formula_evaluator.py" = "tabs/formula_evaluator.py"
+"./tabs/formula_grapher.py" = "tabs/formula_grapher.py"
+"./tabs/unused_fields.py" = "tabs/unused_fields.py"
