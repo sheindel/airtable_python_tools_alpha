@@ -509,7 +509,9 @@ def compress_formula_from_ui(
         
         # Update the UI with the result
         compressed_display = document.getElementById("compressed-formula-display")
-        compressed_display.textContent = formatted_compressed
+        # Escape HTML characters and wrap in span with dark mode text color
+        escaped_formula = formatted_compressed.replace("<", "&lt;").replace(">", "&gt;")
+        compressed_display.innerHTML = f'<span class="text-gray-900 dark:text-gray-100">{escaped_formula}</span>'
         
         # Store the raw (unformatted) formula for later reformatting
         compressed_display.setAttribute("data-raw-formula", compressed)

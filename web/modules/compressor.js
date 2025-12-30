@@ -54,9 +54,9 @@ export function updateOriginalFormulaFormat(outputFormat) {
         const convertedFormula = window.convertFormulaDisplay(originalFormulaText, outputFormat);
         const displayFormat = getDisplayFormat();
         const formattedFormula = applyDisplayFormat(convertedFormula, displayFormat);
-        originalDisplay.textContent = formattedFormula;
+        originalDisplay.innerHTML = `<span class="text-gray-900 dark:text-gray-100">${formattedFormula.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`;
     } else {
-        originalDisplay.textContent = originalFormulaText;
+        originalDisplay.innerHTML = `<span class="text-gray-900 dark:text-gray-100">${originalFormulaText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`;
     }
 }
 
@@ -82,7 +82,7 @@ export function onDisplayFormatChange() {
         if (rawText) {
             const displayFormat = getDisplayFormat();
             const formattedFormula = applyDisplayFormat(rawText, displayFormat);
-            compressedDisplay.textContent = formattedFormula;
+            compressedDisplay.innerHTML = `<span class="text-gray-900 dark:text-gray-100">${formattedFormula.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`;
         }
     }
 }

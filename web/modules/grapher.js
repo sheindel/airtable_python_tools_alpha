@@ -59,7 +59,7 @@ export function onGrapherFieldSelected(tableName, fieldName) {
         const formulaDisplay = document.getElementById("grapher-formula-display");
         if (formulaDisplay) {
             if (formula) {
-                formulaDisplay.textContent = formula;
+                formulaDisplay.innerHTML = `<span class="text-gray-900 dark:text-gray-100">${formula.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`;
             } else {
                 formulaDisplay.innerHTML = '<span class="text-gray-500 dark:text-gray-400 italic">No formula available</span>';
             }
