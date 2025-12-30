@@ -370,3 +370,246 @@ IF({Complete Date},"Completed","In Progress")))'''
         assert root is not None
         # Should have many tokens
         assert len(tokens) > 20
+
+
+class TestHelperFunctions:
+    """Test helper functions for formula analysis"""
+    
+    def find_all_functions(self, node: FormulaTokenNode, func_name: str = "IF") -> List[FormulaTokenNode]:
+        """Find all function nodes with a given name"""
+        results = []
+        
+        if node.token_type == "FUNCTION_NAME" and node.value.upper() == func_name.upper():
+            results.append(node)
+        
+        for child in node.children:
+            results.extend(self.find_all_functions(child, func_name))
+        
+        return results
+    
+    def test_find_single_if_function(self):
+        """Test finding a single IF function"""
+        formula = 'IF({fldABCDEFGHIJKLMN}=BLANK(), "Yes", "No")'
+        root, tokens = tokenize(formula)
+        
+        if_nodes = self.find_all_functions(root, "IF")
+        assert len(if_nodes) >= 1
+        assert if_nodes[0].value.upper() == "IF"
+    
+    def test_find_nested_if_functions(self):
+        """Test finding nested IF functions"""
+        formula = 'IF({fldABCDEFGHIJKLMN}, "A", IF({fldBBCDEFGHIJKLMN}, "B", "C"))'
+        root, tokens = tokenize(formula)
+        
+        if_nodes = self.find_all_functions(root, "IF")
+        # Should find both the outer and inner IF
+        assert len(if_nodes) >= 2
+    
+    def test_find_deeply_nested_ifs(self):
+        """Test finding deeply nested IF functions"""
+        formula = '''IF({Deal}=BLANK(),
+"X. No Deal", 
+IF(FIND("Cancel",{Status})>0,"Y. Cancelled",
+IF({Complete Date},"7. Completed",
+IF(AND({Field Ready}, {Status}),"Ready","Not Ready"))))'''
+        
+        root, tokens = tokenize(formula)
+        if_nodes = self.find_all_functions(root, "IF")
+        
+        # Should find all nested IFs (at least 4 in this formula)
+        assert len(if_nodes) >= 4
+    
+    def test_find_function_case_insensitive(self):
+        """Test that function finding is case-insensitive"""
+        # Note: Airtable formulas require uppercase function names
+        # This test verifies the search helper is case-insensitive even if parser isn't
+        formula = 'IF({fldA}, "yes", "no")'
+        root, tokens = tokenize(formula)
+        
+        # Test both uppercase and lowercase search patterns
+        if_nodes_upper = self.find_all_functions(root, "IF")
+        if_nodes_lower = self.find_all_functions(root, "if")
+        
+        # Both should find the same functions (search is case-insensitive)
+        assert len(if_nodes_upper) >= 1
+        assert len(if_nodes_lower) >= 1
+        assert len(if_nodes_upper) == len(if_nodes_lower)
+    
+    def test_find_non_if_functions(self):
+        """Test finding other function types"""
+        formula = 'SUM(1, 2, 3)'
+        root, tokens = tokenize(formula)
+        
+        sum_nodes = self.find_all_functions(root, "SUM")
+        assert len(sum_nodes) >= 1
+        assert sum_nodes[0].value.upper() == "SUM"
+    
+    def test_find_function_in_complex_formula(self):
+        """Test finding specific functions in complex formula"""
+        formula = 'IF(FIND("text", {fldA})>0, SUM(1,2,3), COUNT({fldB}))'
+        root, tokens = tokenize(formula)
+        
+        # Find each function type
+        if_nodes = self.find_all_functions(root, "IF")
+        find_nodes = self.find_all_functions(root, "FIND")
+        sum_nodes = self.find_all_functions(root, "SUM")
+        count_nodes = self.find_all_functions(root, "COUNT")
+        
+        assert len(if_nodes) >= 1
+        assert len(find_nodes) >= 1
+        assert len(sum_nodes) >= 1
+        assert len(count_nodes) >= 1
+    
+    def test_find_no_matching_functions(self):
+        """Test finding functions that don't exist in formula"""
+        formula = 'IF(TRUE, "yes", "no")'
+        root, tokens = tokenize(formula)
+        
+        sum_nodes = self.find_all_functions(root, "SUM")
+        # Should return empty list
+        assert len(sum_nodes) == 0
+    
+    def test_function_node_has_children(self):
+        """Test that found function nodes have children"""
+        formula = 'IF(TRUE, "yes", "no")'
+        root, tokens = tokenize(formula)
+        
+        if_nodes = self.find_all_functions(root, "IF")
+        assert len(if_nodes) >= 1
+        
+        # Function node should have children (arguments)
+        first_if = if_nodes[0]
+        assert hasattr(first_if, 'children')
+        assert len(first_if.children) > 0
+
+
+class TestComplexRealWorldFormulas:
+    """Test with complex real-world formulas from the grapher debug script"""
+    
+    def test_ultra_complex_nested_formula(self):
+        """Test the ultra-complex nested IF formula from real use case"""
+        formula = '''IF({Deal}=BLANK(),
+"X. No Deal Attached", 
+IF(FIND("Cancel",{J Status OVRD})>0,"Y. Cancelled",
+IF({All Invoices Sent and Linked? #STATUS},"9. QBO sent",
+IF({Billable = Invoiced Clients (Length)? #STATUS},"8. On Invoice",
+IF(AND({Complete Date},{$ Approved Billing?}),"8. Ready to Bill",
+IF({Complete Date},"7. Completed",
+IF(AND({Pts Correct Need?},{Drop/Ship Date},NOT({Pts Corr Date}),{CSV Sent to Lab?}),"4X. Pts Edit Uncorrected",
+IF(AND({Drop/Ship Date},NOT({CSV Sent to Lab?})),"4X. CSV Unsent",
+IF({Drop/Ship Date},"3. Drop/Shipped",
+IF({Sample Date},"2. Sampled",
+IF(FIND("Partial",{J Status OVRD})>0,IF({Field Ready Date}, "1X. Partial", "0X. Partial"),
+IF(AND({Field Ready Date}, FIND("Finalized",{Mission Status})>0),"1. Ready",
+IF({Field Ready Date},"1X. Ready & Unprepped",
+IF( FIND("Finalized",{Mission Status})>0,"0. Unready & Prepped",
+IF( AND( FIND("Finalized",{Mission Status})=0, NOT({Field Ready Date})),"0. Unready & Unprepped","X. Error in Job State")))))))))))))))'''
+        
+        # Should not crash on ultra-complex formula
+        root, tokens = tokenize(formula)
+        assert root is not None
+        
+        # Should have many tokens (this is a very long formula)
+        assert len(tokens) > 100
+    
+    def test_ultra_complex_formula_if_count(self):
+        """Test counting IF functions in ultra-complex formula"""
+        formula = '''IF({Deal}=BLANK(),
+"X. No Deal Attached", 
+IF(FIND("Cancel",{J Status})>0,"Y. Cancelled",
+IF({Complete},"Complete",
+IF({Ready},"Ready",
+IF({InProgress},"In Progress","Unknown")))))'''
+        
+        root, tokens = tokenize(formula)
+        
+        # Helper to find all IFs
+        def find_ifs(node: FormulaTokenNode) -> List[FormulaTokenNode]:
+            results = []
+            if node.token_type == "FUNCTION_NAME" and node.value.upper() == "IF":
+                results.append(node)
+            for child in node.children:
+                results.extend(find_ifs(child))
+            return results
+        
+        if_nodes = find_ifs(root)
+        
+        # Should find multiple nested IFs
+        assert len(if_nodes) >= 5
+    
+    def test_complex_formula_with_and_or_not(self):
+        """Test complex formula with multiple logical operators"""
+        formula = '''IF(AND({Field1}, OR({Field2}, {Field3}), NOT({Field4})), 
+            "Condition Met", 
+            "Condition Not Met")'''
+        
+        root, tokens = tokenize(formula)
+        assert root is not None
+        
+        # Should parse all logical functions
+        def find_function(node: FormulaTokenNode, name: str) -> int:
+            count = 0
+            if node.token_type == "FUNCTION_NAME" and node.value.upper() == name.upper():
+                count = 1
+            for child in node.children:
+                count += find_function(child, name)
+            return count
+        
+        assert find_function(root, "IF") >= 1
+        assert find_function(root, "AND") >= 1
+        assert find_function(root, "OR") >= 1
+        assert find_function(root, "NOT") >= 1
+    
+    def test_complex_formula_with_find_and_string_operations(self):
+        """Test complex formula with FIND and string operations"""
+        formula = '''IF(FIND("Cancel", {Status})>0, 
+            "Cancelled", 
+            IF(FIND("Complete", {Status})>0, "Done", "In Progress"))'''
+        
+        root, tokens = tokenize(formula)
+        assert root is not None
+        
+        # Should parse FIND functions correctly
+        def find_function(node: FormulaTokenNode, name: str) -> int:
+            count = 0
+            if node.token_type == "FUNCTION_NAME" and node.value.upper() == name.upper():
+                count = 1
+            for child in node.children:
+                count += find_function(child, name)
+            return count
+        
+        assert find_function(root, "FIND") >= 2
+        assert find_function(root, "IF") >= 2
+    
+    def test_formula_with_blank_comparisons(self):
+        """Test formula with BLANK() comparisons"""
+        formula = '''IF({Field1}=BLANK(), 
+            "Empty", 
+            IF({Field2}=BLANK(), "Partially Empty", "Full"))'''
+        
+        root, tokens = tokenize(formula)
+        assert root is not None
+        
+        # Should parse BLANK() correctly
+        def find_function(node: FormulaTokenNode, name: str) -> int:
+            count = 0
+            if node.token_type == "FUNCTION_NAME" and node.value.upper() == name.upper():
+                count = 1
+            for child in node.children:
+                count += find_function(child, name)
+            return count
+        
+        assert find_function(root, "BLANK") >= 2
+    
+    def test_formula_with_numeric_comparisons(self):
+        """Test formula with various numeric comparisons"""
+        formula = '''IF({Count} > 10, 
+            "High", 
+            IF({Count} >= 5, "Medium", 
+                IF({Count} > 0, "Low", "None")))'''
+        
+        root, tokens = tokenize(formula)
+        assert root is not None
+        
+        # Should parse comparison operators correctly
+        assert len(tokens) > 20
