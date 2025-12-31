@@ -201,11 +201,49 @@ All web modules use `sys.path.append("web")` to import shared modules. This is r
 ## Build System
 
 ### Tailwind CSS Pipeline
-- Source: [web/input.css](web/input.css) (Tailwind directives)
-- Config: [tailwind.config.js](tailwind.config.js) (scans `web/**/*.{html,js,py}`)
-- Output: `web/output.css` (27KB minified, gitignored)
-- Build: `npm run build:css` (required before running app)
-- CI: Runs automatically in GitHub Actions before deployment
+The project uses Tailwind CSS for all styling, compiled via standalone CLI (no PostCSS or Node build system needed beyond Tailwind itself).
+
+**Architecture**:
+- **Source**: [web/input.css](web/input.css) - Tailwind directives only (@tailwind base/components/utilities)
+- **Config**: [tailwind.config.js](tailwind.config.js) - Scans `web/**/*.{html,js,py}` for class usage
+- **Output**: `web/output.css` - Minified CSS (~27KB), gitignored
+- **Build**: `npm run build:css` - Must run before testing/deploying app
+
+**Content Detection**:
+Tailwind scans all files in `web/` directory for class usage:
+- HTML: `web/index.html` and any template files
+- JavaScript: `web/**/*.js` (including dynamically generated classes)
+- Python: `web/**/*.py` (classes in Python string literals like `element.className = "..."`)
+
+**Custom Configuration** ([tailwind.config.js](tailwind.config.js)):
+```javascript
+module.exports = {
+  content: ["./web/**/*.{html,js,py}"],
+  darkMode: 'class',  // Manual toggle via .dark class
+  theme: {
+    extend: {
+      colors: {
+        primary: { /* 50-900 blue palette */ }
+      }
+    }
+  }
+}
+```
+
+**Development Workflow**:
+```bash
+# One-time build (required before running app)
+npm run build:css
+
+# Watch mode for active development (auto-rebuilds on file changes)
+npm run watch:css
+```
+
+**Important**: The `web/output.css` file MUST exist for the app to render correctly. If you see unstyled HTML, run `npm run build:css` first.
+
+**Dependencies** ([package.json](package.json)):
+- `tailwindcss@^3.4.17` as devDependency
+- No other Node dependencies (no webpack, postcss, etc.)
 
 ### PyScript Configuration
 - Generator: [scripts/generate_pyscript_config.py](scripts/generate_pyscript_config.py)
@@ -220,6 +258,19 @@ All web modules use `sys.path.append("web")` to import shared modules. This is r
 3. Install Python and generate PyScript config
 4. Inject version number into HTML
 5. Deploy to GitHub Pages
+
+### Dependency Management
+**Python** ([pyproject.toml](pyproject.toml)):
+- Manager: `uv` (not pip/poetry/virtualenv)
+- Python version: ≥3.12
+- Key dependencies: `networkx`, `httpx`, `typer`, `pyscript`
+- Dev dependencies: `pytest`, `pytest-cov`, `pytest-asyncio`
+- Install: `uv sync` or `uv sync --group dev`
+
+**Node** ([package.json](package.json)):
+- Manager: `npm`
+- Only dependency: `tailwindcss` (dev)
+- Install: `npm install` (rarely needed after initial setup)
 
 ## Key Implementation Details
 
@@ -265,11 +316,52 @@ uv run pytest --cov=web --cov-report=html
 uv run pytest tests/test_at_metadata_graph.py -v
 ```
 
+### Pytest Import System
+The project uses a specific import pattern to enable tests to import web modules:
+
+**In conftest.py** (runs before all tests):
+```python
+import sys
+from pathlib import Path
+
+# Mock PyScript before importing any web modules
+sys.modules['pyscript'] = MagicMock()
+
+# Add web directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent / "web"))
+```
+
+**In individual test files** (when not using conftest fixtures):
+```python
+import sys
+from pathlib import Path
+
+# Add web directory to path before importing web modules
+sys.path.insert(0, str(Path(__file__).parent.parent / "web"))
+
+from at_metadata_graph import metadata_to_graph
+from constants import FIELD_TYPE_FORMULA
+```
+
+**Key Points**:
+- **Always** add web directory to `sys.path` before importing web modules
+- PyScript is mocked globally in conftest.py (required since web modules import from pyscript)
+- Use `sys.path.insert(0, ...)` not `append()` to prioritize web directory
+- The pytest.ini configuration automatically sets coverage to track the `web/` directory
+
 ### Test Organization
-- [tests/conftest.py](tests/conftest.py): Shared fixtures
+- [tests/conftest.py](tests/conftest.py): Shared fixtures and PyScript mocking
 - [tests/test_at_metadata_graph.py](tests/test_at_metadata_graph.py): Graph operations
 - [tests/test_constants.py](tests/test_constants.py): Constants validation
+- [pytest.ini](pytest.ini): Test runner configuration (coverage, test discovery)
 - See [tests/README.md](tests/README.md) for detailed documentation
+
+### Coverage Configuration
+Coverage is configured in [pytest.ini](pytest.ini):
+- Source: `web/` directory only (excludes CLI and scripts)
+- Omits: test files, pycache, and test_ files
+- Reports: terminal output with missing lines + HTML report in `htmlcov/`
+- Run with every test invocation via `addopts = --cov=web --cov-report=term-missing`
 
 ### Coverage Goals
 - Core business logic: 80%+
@@ -284,6 +376,10 @@ uv run pytest tests/test_at_metadata_graph.py -v
 4. **Field ID vs name confusion**: Graph operations need IDs, UI needs names
 5. **Mermaid syntax errors**: Unescaped parentheses in text break diagrams
 6. **localStorage timing**: Check `get_local_storage_metadata() is not None` before processing
+7. **Missing CSS build**: Unstyled HTML means `web/output.css` doesn't exist - run `npm run build:css`
+8. **Test imports**: Tests fail with import errors if `sys.path.insert(0, "web")` is missing
+9. **PyScript mocking in tests**: Must mock pyscript module before importing web modules (done in conftest.py)
+10. **Dark mode text colors**: Always include dark mode text color classes (see "Code Display Components" section below)
 
 ## External Dependencies
 
@@ -294,6 +390,42 @@ uv run pytest tests/test_at_metadata_graph.py -v
 - **NetworkX**: Graph analysis (works in PyScript)
 
 ## CSS/Tailwind Styling Patterns
+
+### Code Display Components
+**ALWAYS use the reusable helpers from [web/components/code_display.py](web/components/code_display.py) when displaying code:**
+
+```python
+from components.code_display import create_code_block, create_inline_code
+
+# Simple code block (properly styled with dark mode support)
+html = create_code_block(code_string)
+
+# Code block with copy button
+html = create_code_block(
+    code_string, 
+    show_copy_button=True, 
+    copy_button_id="copy-btn"
+)
+
+# Inline code
+text = f"Use the {create_inline_code('getData()')} function"
+```
+
+**Why this matters**: Dark mode requires `text-gray-800 dark:text-gray-200` classes on `<code>` elements. Missing these classes causes black text on dark backgrounds (unreadable). The helper functions guarantee correct styling.
+
+**Manual code blocks** (if you must create them manually):
+```python
+# ✅ CORRECT - includes dark mode text colors
+f'<code class="text-sm text-gray-800 dark:text-gray-200">{code}</code>'
+
+# ❌ WRONG - missing dark mode text colors (black text on dark bg)
+f'<code class="text-sm">{code}</code>'
+```
+
+**Standard class constants** (imported from code_display.py):
+- `CODE_BLOCK_CLASSES`: Background, padding, borders
+- `CODE_TEXT_CLASSES`: Text size and colors (light + dark)
+- `INLINE_CODE_CLASSES`: Inline code styling
 
 ### Dark Mode Implementation
 - Uses `class="dark"` toggle on root elements (managed by [web/components/ui/theme-toggle.js](web/components/ui/theme-toggle.js))

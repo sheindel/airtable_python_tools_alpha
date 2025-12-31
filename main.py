@@ -25,6 +25,16 @@ from web.airtable_formula_evaluator import (
     FormulaEvaluationError
 )
 
+# Import postgres generator from web modules that work cross-environment
+import sys
+sys.path.append("web")
+from postgres_schema_generator import (
+    generate_schema,
+    DATA_FIELD_TYPES,
+    COMPUTED_FIELD_TYPES,
+    ALL_FIELD_TYPES,
+)
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -949,6 +959,88 @@ def eval_formula(
         print(f"Formula evaluation error: {e}")
     except Exception as e:
         print(f"Unexpected error: {e}")
+
+
+@app.command()
+def generate_postgres_schema(
+    schema_file: str = Option(..., "--schema", "-s", help="Path to Airtable schema JSON file"),
+    output_file: Optional[str] = Option(None, "--output", "-o", help="Output SQL file (default: stdout)"),
+    naming_mode: str = Option("field_names", "--naming", "-n", help="Column naming: 'field_ids' or 'field_names'"),
+    field_types: str = Option("data", "--types", "-t", help="Field types to include: 'all', 'data', 'computed', 'data+computed', or comma-separated list"),
+    include_formulas: bool = Option(False, "--include-formulas", help="Include formulas as generated columns (experimental)"),
+    formula_depth: int = Option(2, "--formula-depth", help="Maximum formula compression depth for generated columns"),
+):
+    """
+    Generate PostgreSQL schema from Airtable metadata
+    
+    Examples:
+      # Generate schema with transformed field names, data fields only
+      generate-postgres-schema -s schema.json -o schema.sql
+      
+      # Use field IDs as column names
+      generate-postgres-schema -s schema.json -n field_ids
+      
+      # Include all field types
+      generate-postgres-schema -s schema.json -t all
+      
+      # Include data + computed fields
+      generate-postgres-schema -s schema.json -t data+computed
+      
+      # Specific field types
+      generate-postgres-schema -s schema.json -t "singleLineText,number,checkbox"
+    """
+    # Validate naming mode
+    if naming_mode not in ["field_ids", "field_names"]:
+        print(f"Error: Invalid naming mode '{naming_mode}'. Must be 'field_ids' or 'field_names'")
+        return
+    
+    # Load schema
+    try:
+        with open(schema_file) as f:
+            metadata = json.load(f)
+    except FileNotFoundError:
+        print(f"Error: Schema file not found: {schema_file}")
+        return
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON in schema file: {e}")
+        return
+    
+    # Determine which field types to include
+    included_field_types = None
+    if field_types == "all":
+        included_field_types = ALL_FIELD_TYPES
+    elif field_types == "data":
+        included_field_types = DATA_FIELD_TYPES
+    elif field_types == "computed":
+        included_field_types = COMPUTED_FIELD_TYPES
+    elif field_types == "data+computed":
+        included_field_types = DATA_FIELD_TYPES | COMPUTED_FIELD_TYPES
+    else:
+        # Parse comma-separated list of field types
+        included_field_types = set(t.strip() for t in field_types.split(","))
+    
+    # Generate schema
+    try:
+        sql = generate_schema(
+            metadata,
+            naming_mode=naming_mode,
+            included_field_types=included_field_types,
+            include_formulas_as_generated=include_formulas,
+            formula_max_depth=formula_depth
+        )
+        
+        # Output result
+        if output_file:
+            with open(output_file, "w") as f:
+                f.write(sql)
+            print(f"PostgreSQL schema written to {output_file}")
+        else:
+            print(sql)
+            
+    except Exception as e:
+        print(f"Error generating schema: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 if __name__ == "__main__":

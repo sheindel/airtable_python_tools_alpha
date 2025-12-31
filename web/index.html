@@ -250,6 +250,8 @@
                         <option value="complexity-scorecard">Complexity Scorecard</option>
                         <option value="unused-fields">Unused Fields</option>
                         <option value="formula-evaluator">Formula Evaluator</option>
+                        <option value="postgres-schema">PostgreSQL Schema</option>
+                        <option value="types-generator">Types Generator</option>
                     </select>
                 </div>
                 
@@ -283,6 +285,14 @@
                         <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600 whitespace-nowrap" 
                                 data-tab="formula-evaluator">
                             Formula Evaluator
+                        </button>
+                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600 whitespace-nowrap" 
+                                data-tab="postgres-schema">
+                            PostgreSQL Schema
+                        </button>
+                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600 whitespace-nowrap" 
+                                data-tab="types-generator">
+                            Types Generator
                         </button>
                     </nav>
                 </div>
@@ -866,6 +876,117 @@
                 
                 <!-- Output Container (separate from form to preserve input state) -->
                 <div id="eval-output" class="mt-6">
+                </div>
+            </div>
+
+            <!-- PostgreSQL Schema Tab -->
+            <div id="postgres-schema-tab" class="tab-content hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md transition-colors duration-200">
+                <h2 class="text-xl font-semibold mb-4 dark:text-white">PostgreSQL Schema Generator</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">
+                    Generate PostgreSQL CREATE TABLE statements from your Airtable schema.
+                </p>
+
+                <!-- Options -->
+                <div class="border-2 border-gray-300 dark:border-gray-600 rounded-lg p-4 mb-6">
+                    <h3 class="text-lg font-semibold mb-3 dark:text-white flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                        </svg>
+                        Options
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="postgres-naming-mode">Column Naming:</label>
+                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="postgres-naming-mode">
+                                <option value="field_names">Transformed Field Names (e.g., contact_name)</option>
+                                <option value="field_ids">Airtable Field IDs (e.g., fldXXX)</option>
+                            </select>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">How to name PostgreSQL columns.</p>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="postgres-field-types">Field Types to Include:</label>
+                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="postgres-field-types">
+                                <option value="data">Data Fields Only (text, numbers, dates, etc.)</option>
+                                <option value="data+computed">Data + Computed (includes formulas, rollups)</option>
+                                <option value="all">All Fields</option>
+                                <option value="computed">Computed Fields Only</option>
+                            </select>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Which Airtable field types to include.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" id="postgres-include-formulas" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                            <span class="text-sm font-medium dark:text-gray-200">Convert formulas to PostgreSQL generated columns (experimental)</span>
+                        </label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">Attempts to convert Airtable formulas to PostgreSQL syntax. Limited support.</p>
+                    </div>
+                </div>
+
+                <!-- Generate Button -->
+                <button onclick="generatePostgresSchema()" 
+                        class="w-full bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold py-2.5 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150 mb-6">
+                    Generate PostgreSQL Schema
+                </button>
+
+                <!-- Output -->
+                <div id="postgres-schema-output" class="mt-6">
+                    <div class="text-center py-12 text-gray-500 dark:text-gray-400 italic">
+                        Click "Generate PostgreSQL Schema" to create SQL statements
+                    </div>
+                </div>
+            </div>
+
+            <!-- Types Generator Tab -->
+            <div id="types-generator-tab" class="tab-content hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md transition-colors duration-200">
+                <h2 class="text-xl font-semibold mb-4 dark:text-white">Types Generator</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">
+                    Generate TypeScript or Python type definitions from your Airtable schema to use in your applications for type safety.
+                </p>
+
+                <!-- Options -->
+                <div class="border-2 border-gray-300 dark:border-gray-600 rounded-lg p-4 mb-6">
+                    <h3 class="text-lg font-semibold mb-3 dark:text-white flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                        </svg>
+                        Options
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="types-language">Language:</label>
+                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="types-language">
+                                <option value="typescript">TypeScript</option>
+                                <option value="python-dataclass">Python (dataclass)</option>
+                                <option value="python-typeddict">Python (TypedDict)</option>
+                            </select>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Choose the target language for type generation.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" id="types-include-helpers" checked class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                            <span class="text-sm font-medium dark:text-gray-200">Include helper types (IAirtableAttachment, IAirtableCollaborator)</span>
+                        </label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">Include helper type definitions for Airtable-specific types.</p>
+                    </div>
+                </div>
+
+                <!-- Generate Button -->
+                <button onclick="generateTypes()" 
+                        class="w-full bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold py-2.5 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150 mb-6">
+                    Generate Type Definitions
+                </button>
+
+                <!-- Output -->
+                <div id="types-output" class="mt-6">
+                    <div class="text-center py-12 text-gray-500 dark:text-gray-400 italic">
+                        Click "Generate Type Definitions" to create types
+                    </div>
                 </div>
             </div>
         </div>
