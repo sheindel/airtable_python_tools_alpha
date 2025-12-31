@@ -1,32 +1,64 @@
-# Airtable Mermaid Grapher
+# Airtable Analysis Tools
 
-## Description
-Airtable Mermaid Grapher is a tool designed to generate Mermaid diagrams from Airtable data. This project aims to simplify the process of visualizing Airtable data structures using Mermaid.js.
+Python tools for analyzing Airtable bases with both CLI and web interfaces.
 
-## Installation
-To install the dependencies for this project, you need to have Python 3.12 or higher. You can install the required packages using `uv`:
+## Features
+
+- **Dependency Mapping**: Visualize field relationships and dependencies
+- **Formula Analysis**: Compress, evaluate, and graph formulas
+- **Complexity Scoring**: Identify complex fields and technical debt
+- **Schema Generation**: Export to PostgreSQL and TypeScript types
+- **Unused Fields Detection**: Find fields with no dependents
+
+## Quick Start
+
+**Requirements**: Python ≥3.12, Node.js (for Tailwind CSS)
 
 ```bash
+# Install dependencies
 uv sync
+npm install
+
+# Build CSS (required before running web app)
+npm run build:css
+
+# Run web application
+uv run python main.py run-web
+
+# Or use CLI commands
+uv run python main.py --help
 ```
 
-## TODO
-- [ ] Add formula flowchart subgraphs
-- [ ] Add version information to website
-- [ ] Refactor into composable components (maybe web components?)
-- [ ] Add additional table reports
-- [ ] Add AirTable Schema -> PGSQL Schema Creation
-
-## Usage
-To use the Airtable Mermaid Grapher, you can run the main script using the following command:
+## CLI Commands
 
 ```bash
-uv run python main.py
+# Generate dependency diagram
+uv run python main.py dependency-map <base-id> <field-id>
+
+# Compress formulas
+uv run python main.py compress-formula <base-id> <field-id>
+
+# Generate PostgreSQL schema
+uv run python main.py generate-schema <base-id>
+
+# Evaluate formula with test data
+uv run python main.py evaluate-formula <base-id> <field-id>
 ```
 
-## Contributing
-Contributions are welcome! Please feel free to submit a pull request or open an issue if you have any suggestions or improvements.
+## Development
+
+```bash
+# Run tests with coverage
+uv run pytest --cov=web --cov-report=html
+
+# Watch CSS for changes
+npm run watch:css
+
+# Generate PyScript config
+uv run python scripts/generate_pyscript_config.py
+```
 
 ## License
-This project is licensed under the MIT License. See the LICENSE file for more details.
+
+MIT License - See [LICENSE](LICENSE) file for details.
 
