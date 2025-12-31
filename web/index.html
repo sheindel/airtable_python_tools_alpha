@@ -206,7 +206,7 @@
                     onclick="toggleSetupAccordion()">
                 <span class="text-lg font-semibold dark:text-white">Setup</span>
                 <div class="flex items-center gap-3">
-                    <span class="text-sm text-gray-600 dark:text-gray-400" id="accordion-refresh-date"></span>
+                    <span class="text-sm text-gray-600 dark:text-gray-400 cursor-help" id="accordion-refresh-date"></span>
                     <svg id="accordion-arrow" class="w-5 h-5 text-gray-600 dark:text-gray-400 transition-transform duration-200" 
                          fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -228,10 +228,10 @@
                 </div>
 
                 <div class="space-y-3">
-                    <button class="w-full bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold py-2.5 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed" data-action="fetch-schema">Load Schema With API Keys</button>
+                    <button class="w-full bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold py-2.5 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed" data-action="fetch-schema">Load Base Schema With API Key</button>
                     <button class="w-full bg-gray-600 hover:bg-gray-700 active:bg-gray-800 text-white font-semibold py-2.5 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150" data-action="show-api-help-modal">I don't have an API Key</button>
                 </div>
-                <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm" id="last-refresh">Last Refresh: Not yet retrieved</p>
+                <p class="mt-2 text-gray-600 dark:text-gray-400 text-sm cursor-help" id="last-refresh">Last Refresh: Not yet retrieved</p>
             </div>
         </div>
 

@@ -2,7 +2,7 @@ import "./components/ui/at-dropdown.js";
 import "./components/ui/theme-toggle.js";
 import "./components/ui/tab-manager.js";
 import { saveSchema, getSchema } from "./components/ui/schema-store.js";
-import { getDropdown, setDropdownOptions } from "./modules/dom-utils.js";
+import { getDropdown, setDropdownOptions, formatRelativeTime } from "./modules/dom-utils.js";
 import { toast } from "./modules/toast.js";
 import {
     updateCompressorFieldDropdown,
@@ -169,9 +169,13 @@ function updateUIBasedOnSchema(hasSchema, schemaData) {
         
         // Update the refresh date in the accordion header
         if (schemaData && schemaData.timestamp) {
-            accordionRefreshDate.textContent = `Last: ${schemaData.timestamp}`;
+            const relativeTime = formatRelativeTime(schemaData.timestamp);
+            const fullDate = new Date(schemaData.timestamp).toLocaleString();
+            accordionRefreshDate.textContent = `Last: ${relativeTime}`;
+            accordionRefreshDate.title = fullDate;
         } else {
             accordionRefreshDate.textContent = "Last: Just now";
+            accordionRefreshDate.title = new Date().toLocaleString();
         }
     } else {
         // No schema - show setup form, hide tabs
@@ -337,7 +341,21 @@ async function loadSampleSchema() {
 function updateSchemaInfo() {
     const schemaData = getSchema();
     const tables = schemaData?.schema?.tables || [];
-    document.getElementById("last-refresh").textContent = schemaData ? `Last Refresh: ${schemaData.timestamp || "Just now"}` : "Last Refresh: Not yet retrieved";
+    
+    // Update last refresh with relative time and tooltip
+    const lastRefreshElement = document.getElementById("last-refresh");
+    if (schemaData && schemaData.timestamp) {
+        const relativeTime = formatRelativeTime(schemaData.timestamp);
+        const fullDate = new Date(schemaData.timestamp).toLocaleString();
+        lastRefreshElement.textContent = `Last Refresh: ${relativeTime}`;
+        lastRefreshElement.title = fullDate;
+    } else if (schemaData) {
+        lastRefreshElement.textContent = "Last Refresh: Just now";
+        lastRefreshElement.title = new Date().toLocaleString();
+    } else {
+        lastRefreshElement.textContent = "Last Refresh: Not yet retrieved";
+        lastRefreshElement.title = "";
+    }
 
     const tableOptions = tables.map(table => ({
         id: table.id,
