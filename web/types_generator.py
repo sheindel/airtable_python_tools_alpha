@@ -6,7 +6,7 @@ in client applications (TypeScript) or Python code to ensure type safety when wo
 with Airtable records.
 """
 
-from typing import Dict, List, Any, Set
+from typing import Dict, List, Any, Set, Tuple
 import sys
 sys.path.append("web")
 
@@ -458,3 +458,54 @@ def generate_python_types(metadata: Dict[str, Any], include_helpers: bool = True
         lines.append("")
     
     return "\n".join(lines)
+
+
+def generate_all_typescript_files(metadata: Dict[str, Any], include_helpers: bool = True) -> Dict[str, str]:
+    """
+    Generate all TypeScript files (types + helpers + JS implementation)
+    
+    Args:
+        metadata: Airtable metadata dictionary
+        include_helpers: Whether to include helper type definitions
+    
+    Returns:
+        Dictionary mapping filename to file content
+    """
+    from typescript_helpers_generator import (
+        generate_typescript_helpers,
+        generate_typescript_helpers_js
+    )
+    
+    files = {
+        "types.ts": generate_typescript_types(metadata, include_helpers),
+        "helpers.ts": generate_typescript_helpers(metadata),
+        "helpers.js": generate_typescript_helpers_js(metadata),
+    }
+    
+    return files
+
+
+def generate_all_python_files(
+    metadata: Dict[str, Any],
+    include_helpers: bool = True,
+    use_dataclasses: bool = True
+) -> Dict[str, str]:
+    """
+    Generate all Python files (types + helpers)
+    
+    Args:
+        metadata: Airtable metadata dictionary
+        include_helpers: Whether to include helper type definitions
+        use_dataclasses: Whether to use dataclasses (True) or TypedDict (False)
+    
+    Returns:
+        Dictionary mapping filename to file content
+    """
+    from python_helpers_generator import generate_python_helpers
+    
+    files = {
+        "types.py": generate_python_types(metadata, include_helpers, use_dataclasses),
+        "helpers.py": generate_python_helpers(metadata, use_dataclasses),
+    }
+    
+    return files

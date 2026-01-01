@@ -32,3 +32,5 @@ packages = [
 "./tabs/types_generator.py" = "tabs/types_generator.py"
 "./tabs/unused_fields.py" = "tabs/unused_fields.py"
 "./types_generator.py" = "types_generator.py"
+"./typescript_helpers_generator.py" = "typescript_helpers_generator.py"
+"./python_helpers_generator.py" = "python_helpers_generator.py"

@@ -6,7 +6,12 @@ sys.path.append("web")
 
 from components.airtable_client import get_local_storage_metadata
 from components.error_handling import handle_tab_error, validate_metadata, AnalysisError
-from types_generator import generate_typescript_types, generate_python_types
+from types_generator import (
+    generate_typescript_types,
+    generate_python_types,
+    generate_all_typescript_files,
+    generate_all_python_files,
+)
 
 
 def generate_types():
@@ -25,41 +30,89 @@ def generate_types():
         language = language_select.value
         include_helpers = include_helpers_checkbox.checked if include_helpers_checkbox else True
         
-        # Generate types based on language
+        # Generate files based on language
+        files = {}
         if language == "typescript":
-            types_code = generate_typescript_types(metadata, include_helpers=include_helpers)
+            files = generate_all_typescript_files(metadata, include_helpers=include_helpers)
         elif language == "python-dataclass":
-            types_code = generate_python_types(metadata, include_helpers=include_helpers, use_dataclasses=True)
+            files = generate_all_python_files(metadata, include_helpers=include_helpers, use_dataclasses=True)
         elif language == "python-typeddict":
-            types_code = generate_python_types(metadata, include_helpers=include_helpers, use_dataclasses=False)
+            files = generate_all_python_files(metadata, include_helpers=include_helpers, use_dataclasses=False)
         else:
             raise AnalysisError(f"Unknown language: {language}")
         
-        # Display result
+        # Display results
         output_elem = document.getElementById("types-output")
         if output_elem:
-            # Create container with copy button
-            output_elem.innerHTML = f"""
-                <div class="relative">
-                    <button id="copy-types-btn" 
-                            class="absolute top-2 right-2 bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-700 
-                                   text-gray-700 dark:text-gray-300 p-2 rounded-lg shadow-sm transition-all duration-150 
-                                   opacity-0 hover:opacity-100 focus:opacity-100 group"
-                            style="backdrop-filter: blur(4px);"
-                            title="Copy to clipboard">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                        </svg>
-                    </button>
-                    <pre class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto border border-gray-200 dark:border-gray-700"><code class="text-sm text-gray-800 dark:text-gray-200">{types_code}</code></pre>
-                </div>
-            """
+            html_parts = ['<div class="space-y-6">']
             
-            # Wire up copy button
-            copy_btn = document.getElementById("copy-types-btn")
-            if copy_btn:
-                copy_btn.onclick = lambda e: copy_types_to_clipboard(types_code)
+            # Generate HTML for each file
+            for filename, content in files.items():
+                file_id = filename.replace(".", "-")
+                html_parts.append(f'''
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                        <div class="bg-gray-100 dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+                            <h3 class="font-semibold text-gray-900 dark:text-gray-100">{filename}</h3>
+                            <div class="flex gap-2">
+                                <button id="copy-{file_id}-btn" 
+                                        class="bg-primary-600 hover:bg-primary-700 text-white text-sm px-3 py-1.5 rounded transition-colors duration-150"
+                                        title="Copy to clipboard">
+                                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                    </svg>
+                                    Copy
+                                </button>
+                                <button id="download-{file_id}-btn"
+                                        class="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1.5 rounded transition-colors duration-150"
+                                        title="Download file">
+                                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                    </svg>
+                                    Download
+                                </button>
+                            </div>
+                        </div>
+                        <pre class="bg-gray-50 dark:bg-gray-900 p-4 overflow-x-auto"><code class="text-sm text-gray-800 dark:text-gray-200" id="code-{file_id}">{content}</code></pre>
+                    </div>
+                ''')
+            
+            # Add download all button
+            html_parts.append(f'''
+                <div class="text-center">
+                    <button id="download-all-btn"
+                            class="bg-primary-600 hover:bg-primary-700 text-white font-semibold px-6 py-2.5 rounded-lg shadow-sm hover:shadow transition-all duration-150">
+                        <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        Download All Files
+                    </button>
+                </div>
+            ''')
+            
+            html_parts.append('</div>')
+            output_elem.innerHTML = ''.join(html_parts)
+            
+            # Wire up buttons for each file
+            for filename, content in files.items():
+                file_id = filename.replace(".", "-")
+                
+                # Copy button
+                copy_btn = document.getElementById(f"copy-{file_id}-btn")
+                if copy_btn:
+                    copy_btn.onclick = lambda e, c=content, f=filename: copy_to_clipboard(c, f"copy-{file_id.replace('.', '-')}-btn")
+                
+                # Download button
+                download_btn = document.getElementById(f"download-{file_id}-btn")
+                if download_btn:
+                    download_btn.onclick = lambda e, c=content, f=filename: download_file(c, f)
+            
+            # Download all button
+            download_all_btn = document.getElementById("download-all-btn")
+            if download_all_btn:
+                download_all_btn.onclick = lambda e: download_all_files(files)
         
     except AnalysisError as e:
         handle_tab_error(e, "generating types", "types-output")
@@ -71,33 +124,69 @@ def generate_types():
         )
 
 
-def copy_types_to_clipboard(types_code: str):
-    """Copy generated types to clipboard"""
+
+def copy_to_clipboard(content: str, button_id: str):
+    """Copy content to clipboard and show feedback"""
     try:
         # Use navigator.clipboard API via JavaScript
-        window.navigator.clipboard.writeText(types_code)
+        window.navigator.clipboard.writeText(content)
         
         # Show success feedback
-        copy_btn = document.getElementById("copy-types-btn")
+        copy_btn = document.getElementById(button_id)
         if copy_btn:
             original_html = copy_btn.innerHTML
             copy_btn.innerHTML = """
-                <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                 </svg>
+                Copied!
             """
-            copy_btn.classList.add("opacity-100")
+            copy_btn.classList.add("bg-green-600")
+            copy_btn.classList.remove("bg-primary-600")
             
             # Reset after 2 seconds
             def reset_button():
                 if copy_btn:
                     copy_btn.innerHTML = original_html
-                    copy_btn.classList.remove("opacity-100")
+                    copy_btn.classList.remove("bg-green-600")
+                    copy_btn.classList.add("bg-primary-600")
             
             window.setTimeout(reset_button, 2000)
             
     except Exception as e:
         print(f"Error copying to clipboard: {e}")
+
+
+def download_file(content: str, filename: str):
+    """Download a single file"""
+    try:
+        # Create a blob and download it
+        blob = window.Blob.new([content], {"type": "text/plain"})
+        url = window.URL.createObjectURL(blob)
+        
+        # Create a temporary link and click it
+        link = document.createElement("a")
+        link.href = url
+        link.download = filename
+        link.click()
+        
+        # Clean up
+        window.URL.revokeObjectURL(url)
+        
+    except Exception as e:
+        print(f"Error downloading file: {e}")
+
+
+def download_all_files(files: dict):
+    """Download all files as a zip (or trigger individual downloads)"""
+    try:
+        # For now, download each file individually
+        # In the future, we could create a zip file
+        for filename, content in files.items():
+            download_file(content, filename)
+            
+    except Exception as e:
+        print(f"Error downloading files: {e}")
 
 
 def initialize():
