@@ -46,41 +46,9 @@ def generate_types():
         if output_elem:
             html_parts = ['<div class="space-y-6">']
             
-            # Generate HTML for each file
-            for filename, content in files.items():
-                file_id = filename.replace(".", "-")
-                html_parts.append(f'''
-                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                        <div class="bg-gray-100 dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
-                            <h3 class="font-semibold text-gray-900 dark:text-gray-100">{filename}</h3>
-                            <div class="flex gap-2">
-                                <button id="copy-{file_id}-btn" 
-                                        class="bg-primary-600 hover:bg-primary-700 text-white text-sm px-3 py-1.5 rounded transition-colors duration-150"
-                                        title="Copy to clipboard">
-                                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                                    </svg>
-                                    Copy
-                                </button>
-                                <button id="download-{file_id}-btn"
-                                        class="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1.5 rounded transition-colors duration-150"
-                                        title="Download file">
-                                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                                    </svg>
-                                    Download
-                                </button>
-                            </div>
-                        </div>
-                        <pre class="bg-gray-50 dark:bg-gray-900 p-4 overflow-x-auto"><code class="text-sm text-gray-800 dark:text-gray-200" id="code-{file_id}">{content}</code></pre>
-                    </div>
-                ''')
-            
-            # Add download all button
+            # Add download all button at the top
             html_parts.append(f'''
-                <div class="text-center">
+                <div class="text-center mb-4">
                     <button id="download-all-btn"
                             class="bg-primary-600 hover:bg-primary-700 text-white font-semibold px-6 py-2.5 rounded-lg shadow-sm hover:shadow transition-all duration-150">
                         <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,8 +60,66 @@ def generate_types():
                 </div>
             ''')
             
+            # Generate HTML for each file with collapsible sections
+            for i, (filename, content) in enumerate(files.items()):
+                file_id = filename.replace(".", "-")
+                is_first = i == 0
+                collapsed_class = "" if is_first else "hidden"
+                chevron_direction = "rotate-0" if is_first else "-rotate-90"
+                
+                html_parts.append(f'''
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                        <div class="bg-gray-100 dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                            <div class="flex items-center justify-between">
+                                <button id="toggle-{file_id}-btn" 
+                                        class="flex items-center gap-2 flex-1 text-left group"
+                                        onclick="toggleCodePreview('{file_id}')">
+                                    <svg id="chevron-{file_id}" 
+                                         class="w-5 h-5 text-gray-600 dark:text-gray-400 transition-transform duration-200 {chevron_direction}" 
+                                         fill="none" 
+                                         stroke="currentColor" 
+                                         viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                    <h3 class="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                                        {filename}
+                                    </h3>
+                                </button>
+                                <div class="flex gap-2">
+                                    <button id="copy-{file_id}-btn" 
+                                            class="bg-primary-600 hover:bg-primary-700 text-white text-sm px-3 py-1.5 rounded transition-colors duration-150"
+                                            title="Copy to clipboard">
+                                        <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                        </svg>
+                                        Copy
+                                    </button>
+                                    <button id="download-{file_id}-btn"
+                                            class="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1.5 rounded transition-colors duration-150"
+                                            title="Download file">
+                                        <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                        </svg>
+                                        Download
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="preview-{file_id}" class="transition-all duration-200 {collapsed_class}">
+                            <pre class="bg-gray-50 dark:bg-gray-900 p-4 overflow-x-auto max-h-96 overflow-y-auto"><code class="text-sm text-gray-800 dark:text-gray-200" id="code-{file_id}">{content}</code></pre>
+                        </div>
+                    </div>
+                ''')
+            
             html_parts.append('</div>')
             output_elem.innerHTML = ''.join(html_parts)
+            
+            # Wire up download all button first
+            download_all_btn = document.getElementById("download-all-btn")
+            if download_all_btn:
+                download_all_btn.onclick = lambda e: download_all_files(files)
             
             # Wire up buttons for each file
             for filename, content in files.items():
@@ -108,11 +134,6 @@ def generate_types():
                 download_btn = document.getElementById(f"download-{file_id}-btn")
                 if download_btn:
                     download_btn.onclick = lambda e, c=content, f=filename: download_file(c, f)
-            
-            # Download all button
-            download_all_btn = document.getElementById("download-all-btn")
-            if download_all_btn:
-                download_all_btn.onclick = lambda e: download_all_files(files)
         
     except AnalysisError as e:
         handle_tab_error(e, "generating types", "types-output")
@@ -122,6 +143,24 @@ def generate_types():
             "generating types",
             "types-output"
         )
+
+
+def toggle_code_preview(file_id: str):
+    """Toggle visibility of code preview"""
+    preview_elem = document.getElementById(f"preview-{file_id}")
+    chevron_elem = document.getElementById(f"chevron-{file_id}")
+    
+    if preview_elem and chevron_elem:
+        if preview_elem.classList.contains("hidden"):
+            # Show preview
+            preview_elem.classList.remove("hidden")
+            chevron_elem.classList.remove("-rotate-90")
+            chevron_elem.classList.add("rotate-0")
+        else:
+            # Hide preview
+            preview_elem.classList.add("hidden")
+            chevron_elem.classList.remove("rotate-0")
+            chevron_elem.classList.add("-rotate-90")
 
 
 
@@ -191,7 +230,8 @@ def download_all_files(files: dict):
 
 def initialize():
     """Initialize the types generator tab"""
-    # Export function to global scope
+    # Export functions to global scope
     window.generateTypes = generate_types
+    window.toggleCodePreview = toggle_code_preview
     
     print("Types generator tab initialized")

@@ -462,7 +462,7 @@ def generate_python_types(metadata: Dict[str, Any], include_helpers: bool = True
 
 def generate_all_typescript_files(metadata: Dict[str, Any], include_helpers: bool = True) -> Dict[str, str]:
     """
-    Generate all TypeScript files (types + helpers + JS implementation)
+    Generate all TypeScript files (types + helpers + JS implementation + examples)
     
     Args:
         metadata: Airtable metadata dictionary
@@ -473,13 +473,15 @@ def generate_all_typescript_files(metadata: Dict[str, Any], include_helpers: boo
     """
     from typescript_helpers_generator import (
         generate_typescript_helpers,
-        generate_typescript_helpers_js
+        generate_typescript_helpers_js,
+        generate_typescript_examples
     )
     
     files = {
         "types.ts": generate_typescript_types(metadata, include_helpers),
         "helpers.ts": generate_typescript_helpers(metadata),
         "helpers.js": generate_typescript_helpers_js(metadata),
+        "examples.ts": generate_typescript_examples(metadata),
     }
     
     return files
@@ -491,7 +493,7 @@ def generate_all_python_files(
     use_dataclasses: bool = True
 ) -> Dict[str, str]:
     """
-    Generate all Python files (types + helpers)
+    Generate all Python files (types + helpers + examples)
     
     Args:
         metadata: Airtable metadata dictionary
@@ -501,11 +503,12 @@ def generate_all_python_files(
     Returns:
         Dictionary mapping filename to file content
     """
-    from python_helpers_generator import generate_python_helpers
+    from python_helpers_generator import generate_python_helpers, generate_python_examples
     
     files = {
         "types.py": generate_python_types(metadata, include_helpers, use_dataclasses),
         "helpers.py": generate_python_helpers(metadata, use_dataclasses),
+        "examples.py": generate_python_examples(metadata, use_dataclasses),
     }
     
     return files
