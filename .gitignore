@@ -179,6 +179,8 @@ cython_debug/
 # Build artifacts
 node_modules/
 web/output.css
+web/dist/
+*.tsbuildinfo
 
 # Ignore potential output files
 # Ignore all JSON except for web/samples_schema.json

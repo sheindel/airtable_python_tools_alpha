@@ -1,3 +1,9 @@
+/**
+ * Action Handlers Module
+ * Central registry for all action handlers and event listeners.
+ * Provides a unified interface for button clicks, change events, and modal interactions.
+ */
+
 import { copyToClipboard } from "./dom-utils.js";
 import { downloadMermaidSVG, openInMermaidLive, copyMermaidText, toggleFullscreen, downloadMermaidText } from "./mermaid-actions.js";
 import { generateTableReport } from "./compressor.js";
@@ -19,8 +25,12 @@ import {
     downloadUnusedFieldsCSV,
 } from "./unused.js";
 
-// Modal helper functions
-function showApiHelpModal() {
+type ActionHandler = (event?: Event, target?: HTMLElement) => void;
+
+/**
+ * Show the API help modal
+ */
+function showApiHelpModal(): void {
     const modal = document.getElementById("api-help-modal");
     if (modal) {
         modal.style.display = 'flex';
@@ -29,7 +39,10 @@ function showApiHelpModal() {
     }
 }
 
-function hideApiHelpModal() {
+/**
+ * Hide the API help modal
+ */
+function hideApiHelpModal(): void {
     const modal = document.getElementById("api-help-modal");
     if (modal) {
         modal.style.display = 'none';
@@ -38,7 +51,9 @@ function hideApiHelpModal() {
     }
 }
 
-// Set up modal close handlers
+/**
+ * Set up modal close handlers
+ */
 document.addEventListener("DOMContentLoaded", () => {
     const closeButton = document.getElementById("close-api-help-modal");
     const modal = document.getElementById("api-help-modal");
@@ -70,7 +85,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-export function buildActionHandlers(fetchSchema, loadSampleSchema) {
+/**
+ * Build the action handlers registry
+ */
+export function buildActionHandlers(fetchSchema: () => void, loadSampleSchema: () => void): Record<string, ActionHandler> {
     return {
         "fetch-schema": fetchSchema,
         "load-sample-schema": loadSampleSchema,
@@ -91,17 +109,32 @@ export function buildActionHandlers(fetchSchema, loadSampleSchema) {
         "open-grapher-live": openFormulaGrapherInMermaidLive,
         "toggle-grapher-fullscreen": toggleFormulaGrapherFullscreen,
         "generate-table-report": generateTableReport,
-        "copy-to-clipboard": (event, target) => copyToClipboard(target.dataset.target, target.dataset.description || "", event),
+        "copy-to-clipboard": (event, target) => {
+            if (target) {
+                copyToClipboard(target.dataset.target || "", target.dataset.description || "", event as MouseEvent);
+            }
+        },
         "refresh-scorecard": refreshComplexityScorecard,
-        "sort-scorecard": (_event, target) => sortScorecardBy(target.dataset.field),
+        "sort-scorecard": (_event, target) => {
+            if (target?.dataset.field) {
+                sortScorecardBy(target.dataset.field as any);
+            }
+        },
         "download-scorecard-csv": downloadComplexityCSV,
         "refresh-unused": refreshUnusedFields,
-        "sort-unused": (_event, target) => sortUnusedBy(target.dataset.field),
+        "sort-unused": (_event, target) => {
+            if (target?.dataset.field) {
+                sortUnusedBy(target.dataset.field as any);
+            }
+        },
         "download-unused-csv": downloadUnusedFieldsCSV,
     };
 }
 
-export const changeHandlers = {
+/**
+ * Change handlers for input/select elements
+ */
+export const changeHandlers: Record<string, () => void> = {
     "scorecard-filter": refreshComplexityScorecard,
     "unused-filter": refreshUnusedFields,
 };

@@ -1,12 +1,40 @@
+/**
+ * Complexity Scorecard Module
+ * Handles the Complexity Scorecard tab logic, including field analysis,
+ * sorting, filtering, and CSV export with PyScript integration.
+ */
+
 import { getSchema } from "../components/ui/schema-store.js";
 import { escapeHtml } from "./dom-utils.js";
 
-let scorecardData = [];
-let scorecardSortField = "complexity_score";
+interface ScorecardField {
+    complexity_score: number;
+    table_name: string;
+    field_name: string;
+    field_type: string;
+    max_depth: number;
+    backward_deps: number;
+    forward_deps: number;
+    cross_table_deps: number;
+}
+
+interface ComplexitySummary {
+    total_computed_fields: number;
+    avg_complexity_score: number;
+    max_complexity_score: number;
+}
+
+type SortField = keyof ScorecardField;
+
+let scorecardData: ScorecardField[] = [];
+let scorecardSortField: SortField = "complexity_score";
 let scorecardSortAsc = false;
 
-export function initializeScorecardDropdowns() {
-    const tableFilter = document.getElementById("scorecard-table-filter");
+/**
+ * Initialize the scorecard table filter dropdown
+ */
+export function initializeScorecardDropdowns(): void {
+    const tableFilter = document.getElementById("scorecard-table-filter") as HTMLSelectElement | null;
     if (!tableFilter) return;
 
     tableFilter.innerHTML = '<option value="">All Tables</option>';
@@ -21,9 +49,12 @@ export function initializeScorecardDropdowns() {
     });
 }
 
-export function refreshComplexityScorecard() {
-    const tableFilter = document.getElementById("scorecard-table-filter");
-    const minScoreInput = document.getElementById("scorecard-min-score");
+/**
+ * Refresh the complexity scorecard with current filters
+ */
+export function refreshComplexityScorecard(): void {
+    const tableFilter = document.getElementById("scorecard-table-filter") as HTMLSelectElement | null;
+    const minScoreInput = document.getElementById("scorecard-min-score") as HTMLInputElement | null;
 
     const filterTable = tableFilter ? tableFilter.value : "";
     const minScore = minScoreInput ? parseFloat(minScoreInput.value) || 0 : 0;
@@ -51,7 +82,7 @@ export function refreshComplexityScorecard() {
         if (typeof window.getComplexityScorecardData !== "undefined") {
             try {
                 const jsonData = window.getComplexityScorecardData(filterTable || null, minScore);
-                scorecardData = JSON.parse(jsonData);
+                scorecardData = JSON.parse(jsonData) as ScorecardField[];
 
                 updateComplexitySummary();
                 renderScorecardTable();
@@ -73,7 +104,10 @@ export function refreshComplexityScorecard() {
     }, 50);
 }
 
-export function sortScorecardBy(field) {
+/**
+ * Sort the scorecard table by a field
+ */
+export function sortScorecardBy(field: SortField): void {
     if (scorecardSortField === field) {
         scorecardSortAsc = !scorecardSortAsc;
     } else {
@@ -84,7 +118,10 @@ export function sortScorecardBy(field) {
     renderScorecardTable();
 }
 
-export function downloadComplexityCSV() {
+/**
+ * Download the complexity scorecard as CSV
+ */
+export function downloadComplexityCSV(): void {
     if (typeof window.exportComplexityCSV !== "undefined") {
         try {
             const csvData = window.exportComplexityCSV();
@@ -110,30 +147,36 @@ export function downloadComplexityCSV() {
     }
 }
 
-function updateComplexitySummary() {
+/**
+ * Update the complexity summary statistics
+ */
+function updateComplexitySummary(): void {
     if (typeof window.getComplexitySummary !== "undefined") {
         try {
             const jsonData = window.getComplexitySummary();
-            const summary = JSON.parse(jsonData);
+            const summary = JSON.parse(jsonData) as ComplexitySummary;
 
             const totalEl = document.getElementById("summary-total-fields");
             const avgEl = document.getElementById("summary-avg-score");
             const maxEl = document.getElementById("summary-max-score");
             const highEl = document.getElementById("summary-high-count");
 
-            if (totalEl) totalEl.textContent = summary.total_computed_fields || 0;
-            if (avgEl) avgEl.textContent = summary.avg_complexity_score || 0;
-            if (maxEl) maxEl.textContent = summary.max_complexity_score || 0;
+            if (totalEl) totalEl.textContent = String(summary.total_computed_fields || 0);
+            if (avgEl) avgEl.textContent = String(summary.avg_complexity_score || 0);
+            if (maxEl) maxEl.textContent = String(summary.max_complexity_score || 0);
 
             const highCount = scorecardData.filter((f) => f.complexity_score > 20).length;
-            if (highEl) highEl.textContent = highCount;
+            if (highEl) highEl.textContent = String(highCount);
         } catch (error) {
             console.error("Error getting summary:", error);
         }
     }
 }
 
-function renderScorecardTable() {
+/**
+ * Render the scorecard table with current data and sorting
+ */
+function renderScorecardTable(): void {
     const tbody = document.getElementById("scorecard-table-body");
     if (!tbody) return;
 
@@ -149,16 +192,16 @@ function renderScorecardTable() {
     }
 
     const sortedData = [...scorecardData].sort((a, b) => {
-        let aVal = a[scorecardSortField];
-        let bVal = b[scorecardSortField];
+        let aVal: string | number = a[scorecardSortField];
+        let bVal: string | number = b[scorecardSortField];
 
         if (typeof aVal === "string") {
             aVal = aVal.toLowerCase();
-            bVal = bVal.toLowerCase();
+            bVal = (bVal as string).toLowerCase();
             return scorecardSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
         }
 
-        return scorecardSortAsc ? aVal - bVal : bVal - aVal;
+        return scorecardSortAsc ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
     });
 
     const rows = sortedData.map((field) => {
@@ -196,7 +239,10 @@ function renderScorecardTable() {
     tbody.innerHTML = rows.join("");
 }
 
-function getScoreColorClass(score) {
+/**
+ * Get the CSS class for a complexity score badge
+ */
+function getScoreColorClass(score: number): string {
     if (score >= 50) return "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300";
     if (score >= 30) return "bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300";
     if (score >= 20) return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300";
@@ -204,8 +250,11 @@ function getScoreColorClass(score) {
     return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
 }
 
-function getFieldTypeIcon(fieldType) {
-    const icons = {
+/**
+ * Get the icon for a field type
+ */
+function getFieldTypeIcon(fieldType: string): string {
+    const icons: Record<string, string> = {
         formula: "f<sub>x</sub>",
         rollup: "🧻",
         multipleLookupValues: "🔭",

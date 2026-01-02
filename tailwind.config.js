@@ -2,6 +2,7 @@
 module.exports = {
   content: [
     "./web/**/*.{html,js,py}",
+    "./web/src/**/*.ts",
   ],
   darkMode: 'class',
   theme: {

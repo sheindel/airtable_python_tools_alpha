@@ -1,0 +1,1 @@
+- [ ] Add AI instructions for running both `pytest` and `npm` to successfully capture outputs (periodically fails in AI window)

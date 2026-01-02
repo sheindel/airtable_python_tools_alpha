@@ -12,15 +12,15 @@ Python tools for analyzing Airtable bases with both CLI and web interfaces.
 
 ## Quick Start
 
-**Requirements**: Python ≥3.12, Node.js (for Tailwind CSS)
+**Requirements**: Python ≥3.12, Node.js (for build pipeline)
 
 ```bash
 # Install dependencies
 uv sync
 npm install
 
-# Build CSS (required before running web app)
-npm run build:css
+# Build CSS and TypeScript (required before running web app)
+npm run build
 
 # Run web application
 uv run python main.py run-web
@@ -51,12 +51,14 @@ uv run python main.py evaluate-formula <base-id> <field-id>
 # Run tests with coverage
 uv run pytest --cov=web --cov-report=html
 
-# Watch CSS for changes
-npm run watch:css
+# Watch CSS and TypeScript for changes
+npm run watch
 
 # Generate PyScript config
 uv run python scripts/generate_pyscript_config.py
 ```
+
+See [web/TYPESCRIPT.md](web/TYPESCRIPT.md) for TypeScript development details.
 
 ## License
 

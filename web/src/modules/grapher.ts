@@ -1,13 +1,29 @@
+/**
+ * Formula Grapher Module
+ * Handles the Formula Grapher tab logic, including dropdown initialization,
+ * field selection, and diagram generation with PyScript integration.
+ */
+
 import { getSchema, getTables } from "../components/ui/schema-store.js";
 import { getDropdown, setDropdownOptions } from "./dom-utils.js";
 import { toast } from "./toast.js";
+import type { AirtableTable, DropdownOption } from "../types/pyscript.js";
+import type { AtDropdownElement } from "../types/dom.js";
 
-let grapherTableOptions = [];
-let grapherFieldOptions = [];
+interface GrapherFieldOption extends DropdownOption {
+    tableName: string;
+    formula: string;
+}
 
-export function initializeGrapherDropdowns() {
+let grapherTableOptions: DropdownOption[] = [];
+let grapherFieldOptions: GrapherFieldOption[] = [];
+
+/**
+ * Initialize the grapher dropdowns with table options
+ */
+export function initializeGrapherDropdowns(): void {
     const tables = getTables();
-    grapherTableOptions = tables.map((table) => ({ id: table.id, text: table.name }));
+    grapherTableOptions = tables.map((table: AirtableTable) => ({ id: table.id, text: table.name }));
     grapherFieldOptions = [];
 
     grapherTableOptions.sort((a, b) => a.text.localeCompare(b.text));
@@ -15,7 +31,10 @@ export function initializeGrapherDropdowns() {
     setDropdownOptions("grapher-field-dropdown", []);
 }
 
-export function updateGrapherFieldDropdown(tableId) {
+/**
+ * Update field dropdown when a table is selected
+ */
+export function updateGrapherFieldDropdown(tableId: string): void {
     const schemaData = getSchema();
     const fieldDropdown = getDropdown("grapher-field-dropdown");
     grapherFieldOptions = [];
@@ -53,7 +72,10 @@ export function updateGrapherFieldDropdown(tableId) {
     }
 }
 
-export function onGrapherFieldSelected(tableName, fieldName) {
+/**
+ * Handle field selection and display formula
+ */
+export function onGrapherFieldSelected(tableName: string, fieldName: string): void {
     if (typeof window.getFormulaForDisplay !== "undefined") {
         const formula = window.getFormulaForDisplay(tableName, fieldName);
         const formulaDisplay = document.getElementById("grapher-formula-display");
@@ -69,9 +91,12 @@ export function onGrapherFieldSelected(tableName, fieldName) {
     autoGenerateFormulaGraph();
 }
 
-export function autoGenerateFormulaGraph() {
-    const tableInput = document.getElementById("grapher-table-dropdown");
-    const fieldInput = document.getElementById("grapher-field-dropdown");
+/**
+ * Automatically generate formula graph based on current selections
+ */
+export function autoGenerateFormulaGraph(): void {
+    const tableInput = document.getElementById("grapher-table-dropdown") as AtDropdownElement | null;
+    const fieldInput = document.getElementById("grapher-field-dropdown") as AtDropdownElement | null;
 
     const tableName = tableInput ? tableInput.value.trim() : "";
     const fieldName = fieldInput ? fieldInput.value.trim() : "";
@@ -80,9 +105,9 @@ export function autoGenerateFormulaGraph() {
         return;
     }
 
-    const expandCheckbox = document.getElementById("grapher-expand-fields");
-    const depthInput = document.getElementById("grapher-expansion-depth");
-    const directionDropdown = document.getElementById("grapher-flowchart-direction");
+    const expandCheckbox = document.getElementById("grapher-expand-fields") as HTMLInputElement | null;
+    const depthInput = document.getElementById("grapher-expansion-depth") as HTMLInputElement | null;
+    const directionDropdown = document.getElementById("grapher-flowchart-direction") as HTMLSelectElement | null;
 
     const expandFields = !!expandCheckbox?.checked;
     const direction = directionDropdown ? directionDropdown.value : "TD";
@@ -94,9 +119,13 @@ export function autoGenerateFormulaGraph() {
     }
 }
 
-export function downloadFormulaGrapherSVG() {
-    const svgElement = document.querySelector("#formula-grapher-mermaid-container .mermaid svg");
+/**
+ * Download the formula graph as SVG
+ */
+export function downloadFormulaGrapherSVG(): void {
+    const svgElement = document.querySelector("#formula-grapher-mermaid-container .mermaid svg") as SVGSVGElement | null;
     if (!svgElement) return toast.warning("No diagram available to download");
+    
     const serializer = new XMLSerializer();
     const svgString = serializer.serializeToString(svgElement);
     const blob = new Blob([svgString], { type: "image/svg+xml" });
@@ -106,7 +135,10 @@ export function downloadFormulaGrapherSVG() {
     link.click();
 }
 
-export function openFormulaGrapherInMermaidLive() {
+/**
+ * Open the formula graph in Mermaid Live Editor
+ */
+export function openFormulaGrapherInMermaidLive(): void {
     const graphDefinition = localStorage.getItem("lastFormulaGraphDefinition");
     if (!graphDefinition) return toast.warning("No diagram available to open in Mermaid Live");
 
@@ -121,27 +153,36 @@ export function openFormulaGrapherInMermaidLive() {
         zoom: "",
         editorMode: "code",
     };
-    const compressedGraph = pako.deflate(new TextEncoder().encode(JSON.stringify(state)), { level: 9 });
-    const encodedGraph = window.Base64.fromUint8Array(compressedGraph, true);
+    
+    // Using pako and Base64 from window (loaded externally)
+    const compressedGraph = (window as any).pako.deflate(new TextEncoder().encode(JSON.stringify(state)), { level: 9 });
+    const encodedGraph = (window as any).Base64.fromUint8Array(compressedGraph, true);
     const mermaidLiveUrl = `https://mermaid.live/edit#pako:${encodedGraph}`;
     window.open(mermaidLiveUrl, "_blank");
 }
 
-export function copyFormulaGrapherMermaidText() {
+/**
+ * Copy the formula graph Mermaid text to clipboard
+ */
+export function copyFormulaGrapherMermaidText(): void {
     const graphDefinition = localStorage.getItem("lastFormulaGraphDefinition");
     if (!graphDefinition) return toast.warning("No diagram available to copy");
+    
     navigator.clipboard.writeText(graphDefinition).then(() => {
         toast.success("Mermaid diagram copied to clipboard");
-    }).catch((error) => {
+    }).catch((error: Error) => {
         console.error("Error copying to clipboard:", error);
         toast.error("Failed to copy Mermaid diagram to clipboard");
     });
 }
 
-export function toggleFormulaGrapherFullscreen() {
+/**
+ * Toggle fullscreen mode for the formula graph container
+ */
+export function toggleFormulaGrapherFullscreen(): void {
     const mermaidContainer = document.getElementById("formula-grapher-mermaid-container");
     if (!document.fullscreenElement) {
-        mermaidContainer?.requestFullscreen().catch((err) => {
+        mermaidContainer?.requestFullscreen().catch((err: Error) => {
             toast.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
         });
     } else {

@@ -175,7 +175,6 @@
             maxTextSize: 150000,
         });
     </script>
-    <script src="script.js" type="module"></script>
     <script>
         // Global function for formula evaluator
         function reloadFieldDependencies() {
@@ -547,14 +546,13 @@
                                    type="number" 
                                    id="compression-depth" 
                                    placeholder="Unlimited (leave empty)" 
-                                   min="0"
-                                   oninput="autoCompressFormula()">
+                                   min="0">
                             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">How many levels deep to compress. Leave empty for full compression.</p>
                         </div>
 
                         <div>
                             <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="output-format">Output Format:</label>
-                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="output-format" onchange="autoCompressFormula()">
+                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="output-format">
                                 <option value="field_ids">Field IDs (e.g., {fldXXX})</option>
                                 <option value="field_names" selected>Field Names (e.g., {Field Name})</option>
                             </select>
@@ -1056,7 +1054,7 @@
         </div>
     </div>
 
-    <script type="module" src="./script.js"></script>
+    <script type="module" src="./dist/script.js"></script>
     <script type="py" src="./main.py"></script>
 </body>
 

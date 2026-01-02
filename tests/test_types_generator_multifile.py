@@ -212,12 +212,12 @@ def test_empty_metadata():
     """Test generating files with empty metadata"""
     metadata = {"tables": []}
     
-    # TypeScript should still generate valid files
+    # TypeScript should still generate valid files (types, helpers, examples, and helpers.js)
     ts_files = generate_all_typescript_files(metadata)
-    assert len(ts_files) == 3
+    assert len(ts_files) == 4  # types.ts, helpers.ts, examples.ts, helpers.js
     assert "export function getFieldId" in ts_files["helpers.ts"]
     
-    # Python should still generate valid files
+    # Python should still generate valid files (types, helpers, examples)
     py_files = generate_all_python_files(metadata)
-    assert len(py_files) == 2
+    assert len(py_files) == 3  # types.py, helpers.py, examples.py
     assert "def get_field_id" in py_files["helpers.py"]

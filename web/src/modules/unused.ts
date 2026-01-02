@@ -1,14 +1,40 @@
+/**
+ * Unused Fields Module
+ * Handles the Unused Fields tab logic, including field analysis,
+ * filtering, sorting, and CSV export with PyScript integration.
+ */
+
 import { getSchema } from "../components/ui/schema-store.js";
 import { escapeHtml } from "./dom-utils.js";
 import { toast } from "./toast.js";
 
-let unusedFieldsData = [];
-let unusedSortField = "table_name";
+interface UnusedField {
+    table_name: string;
+    field_name: string;
+    field_type: string;
+    outbound_count: number;
+}
+
+interface UnusedFieldsSummary {
+    total_fields: number;
+    unused_count: number;
+    unused_percentage: number;
+    tables_with_unused: number;
+    total_tables: number;
+}
+
+type SortField = keyof UnusedField;
+
+let unusedFieldsData: UnusedField[] = [];
+let unusedSortField: SortField = "table_name";
 let unusedSortAsc = true;
 
-export function initializeUnusedDropdowns() {
-    const tableFilter = document.getElementById("unused-table-filter");
-    const typeFilter = document.getElementById("unused-type-filter");
+/**
+ * Initialize the unused fields filter dropdowns
+ */
+export function initializeUnusedDropdowns(): void {
+    const tableFilter = document.getElementById("unused-table-filter") as HTMLSelectElement | null;
+    const typeFilter = document.getElementById("unused-type-filter") as HTMLSelectElement | null;
 
     if (tableFilter) {
         tableFilter.innerHTML = '<option value="">All Tables</option>';
@@ -27,7 +53,7 @@ export function initializeUnusedDropdowns() {
         if (typeof window.getFieldTypesForDropdown !== "undefined") {
             try {
                 const types = window.getFieldTypesForDropdown();
-                types.forEach((type) => {
+                types.forEach((type: string) => {
                     const option = document.createElement("option");
                     option.value = type;
                     option.textContent = type;
@@ -40,9 +66,12 @@ export function initializeUnusedDropdowns() {
     }
 }
 
-export function refreshUnusedFields() {
-    const tableFilter = document.getElementById("unused-table-filter");
-    const typeFilter = document.getElementById("unused-type-filter");
+/**
+ * Refresh the unused fields analysis
+ */
+export function refreshUnusedFields(): void {
+    const tableFilter = document.getElementById("unused-table-filter") as HTMLSelectElement | null;
+    const typeFilter = document.getElementById("unused-type-filter") as HTMLSelectElement | null;
 
     const filterTable = tableFilter ? tableFilter.value : "";
     const filterType = typeFilter ? typeFilter.value : "";
@@ -52,21 +81,24 @@ export function refreshUnusedFields() {
     if (typeof window.getUnusedFieldsData !== "undefined") {
         try {
             const jsonData = window.getUnusedFieldsData(filterTable, filterType);
-            unusedFieldsData = JSON.parse(jsonData);
+            unusedFieldsData = JSON.parse(jsonData) as UnusedField[];
 
             updateUnusedSummary();
             renderUnusedTable();
         } catch (error) {
             console.error("Error getting unused fields data:", error);
-            console.error("Error details:", error.message, error.stack);
-            toast.error(`Failed to get unused fields data. Make sure you have loaded a schema. Error: ${error.message || error}`);
+            console.error("Error details:", (error as Error).message, (error as Error).stack);
+            toast.error(`Failed to get unused fields data. Make sure you have loaded a schema. Error: ${(error as Error).message || error}`);
         }
     } else {
         toast.error("Unused fields detector is not yet initialized. Please refresh the page.");
     }
 }
 
-export function sortUnusedBy(field) {
+/**
+ * Sort the unused fields table by a field
+ */
+export function sortUnusedBy(field: SortField): void {
     if (unusedSortField === field) {
         unusedSortAsc = !unusedSortAsc;
     } else {
@@ -77,7 +109,10 @@ export function sortUnusedBy(field) {
     renderUnusedTable();
 }
 
-export function downloadUnusedFieldsCSV() {
+/**
+ * Download unused fields as CSV
+ */
+export function downloadUnusedFieldsCSV(): void {
     if (typeof window.exportUnusedFieldsCSV !== "undefined") {
         try {
             const csvData = window.exportUnusedFieldsCSV();
@@ -104,19 +139,22 @@ export function downloadUnusedFieldsCSV() {
     }
 }
 
-function updateUnusedSummary() {
+/**
+ * Update the unused fields summary statistics
+ */
+function updateUnusedSummary(): void {
     if (typeof window.getUnusedFieldsSummary !== "undefined") {
         try {
             const jsonData = window.getUnusedFieldsSummary();
-            const summary = JSON.parse(jsonData);
+            const summary = JSON.parse(jsonData) as UnusedFieldsSummary;
 
             const totalEl = document.getElementById("unused-summary-total");
             const countEl = document.getElementById("unused-summary-count");
             const percentEl = document.getElementById("unused-summary-percent");
             const tablesEl = document.getElementById("unused-summary-tables");
 
-            if (totalEl) totalEl.textContent = summary.total_fields || 0;
-            if (countEl) countEl.textContent = summary.unused_count || 0;
+            if (totalEl) totalEl.textContent = String(summary.total_fields || 0);
+            if (countEl) countEl.textContent = String(summary.unused_count || 0);
             if (percentEl) percentEl.textContent = `${summary.unused_percentage || 0}%`;
             if (tablesEl) tablesEl.textContent = `${summary.tables_with_unused || 0}/${summary.total_tables || 0}`;
         } catch (error) {
@@ -125,7 +163,10 @@ function updateUnusedSummary() {
     }
 }
 
-function renderUnusedTable() {
+/**
+ * Render the unused fields table
+ */
+function renderUnusedTable(): void {
     const tbody = document.getElementById("unused-table-body");
     if (!tbody) return;
 
@@ -141,16 +182,16 @@ function renderUnusedTable() {
     }
 
     const sortedData = [...unusedFieldsData].sort((a, b) => {
-        let aVal = a[unusedSortField];
-        let bVal = b[unusedSortField];
+        let aVal: string | number = a[unusedSortField];
+        let bVal: string | number = b[unusedSortField];
 
         if (typeof aVal === "string") {
             aVal = aVal.toLowerCase();
-            bVal = bVal.toLowerCase();
+            bVal = (bVal as string).toLowerCase();
             return unusedSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
         }
 
-        return unusedSortAsc ? aVal - bVal : bVal - aVal;
+        return unusedSortAsc ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
     });
 
     const rows = sortedData.map((field) => {
@@ -185,8 +226,11 @@ function renderUnusedTable() {
     tbody.innerHTML = rows.join("");
 }
 
-function getFieldTypeIconUnused(fieldType) {
-    const icons = {
+/**
+ * Get the icon for a field type in unused fields
+ */
+function getFieldTypeIconUnused(fieldType: string): string {
+    const icons: Record<string, string> = {
         formula: "f<sub>x</sub>",
         rollup: "🧻",
         multipleLookupValues: "🔭",

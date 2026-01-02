@@ -42,8 +42,8 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
       
-      - name: Build Tailwind CSS
-        run: npm run build:css
+      - name: Build CSS and TypeScript
+        run: npm run build
       
       - name: Set up Python
         uses: actions/setup-python@v5

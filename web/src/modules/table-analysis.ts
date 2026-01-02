@@ -1,16 +1,32 @@
-import { getTables } from "../components/ui/schema-store.js";
-import { setDropdownOptions } from "./dom-utils.js";
+/**
+ * Table Analysis Module
+ * Handles the Table Analysis tab logic, including table dependencies analysis,
+ * filtering, sorting, and CSV export with PyScript integration.
+ */
 
-let lastDependenciesData = [];
-let filteredDependenciesData = [];
-let currentSortColumn = null;
-let currentSortDirection = 'asc';
+// Imports available if needed in future
+// import { getTables } from "../components/ui/schema-store.js";
+// import { setDropdownOptions } from "./dom-utils.js";
 
-export function initializeAnalysisDropdowns() {
+// Data format: [source_table, target_table, links, rollups, lookups, total]
+type DependencyRow = [string, string, number, number, number, number];
+
+let lastDependenciesData: DependencyRow[] = [];
+let filteredDependenciesData: DependencyRow[] = [];
+let currentSortColumn: number | null = null;
+let currentSortDirection: 'asc' | 'desc' = 'asc';
+
+/**
+ * Initialize analysis dropdowns (kept for backward compatibility)
+ */
+export function initializeAnalysisDropdowns(): void {
     // No longer needed but kept for backward compatibility if called elsewhere
 }
 
-export function generateTableDependencies() {
+/**
+ * Generate table dependencies analysis
+ */
+export function generateTableDependencies(): void {
     if (typeof window.getTableDependencies !== "undefined") {
         try {
             const rawData = window.getTableDependencies();
@@ -21,7 +37,7 @@ export function generateTableDependencies() {
             }
 
             // Convert PyScript proxy objects to native JavaScript arrays using toJs()
-            const data = rawData.toJs ? rawData.toJs() : rawData;
+            const data: DependencyRow[] = (rawData as any).toJs ? (rawData as any).toJs() : rawData;
 
             lastDependenciesData = data;
             filteredDependenciesData = [...data];
@@ -29,8 +45,8 @@ export function generateTableDependencies() {
             currentSortDirection = 'asc';
 
             // Clear any existing filters
-            const sourceFilter = document.getElementById("filter-source-table");
-            const targetFilter = document.getElementById("filter-target-table");
+            const sourceFilter = document.getElementById("filter-source-table") as HTMLInputElement | null;
+            const targetFilter = document.getElementById("filter-target-table") as HTMLInputElement | null;
             if (sourceFilter) sourceFilter.value = "";
             if (targetFilter) targetFilter.value = "";
 
@@ -43,14 +59,17 @@ export function generateTableDependencies() {
             resultsDiv?.classList.remove("hidden");
         } catch (error) {
             console.error("Error generating table dependencies:", error);
-            alert(`Failed to generate table dependencies: ${error.message || error}`);
+            alert(`Failed to generate table dependencies: ${(error as Error).message || error}`);
         }
     } else {
         alert("Table dependencies analysis is not yet initialized. Please refresh the page.");
     }
 }
 
-function setupFilterListeners() {
+/**
+ * Set up filter event listeners
+ */
+function setupFilterListeners(): void {
     const sourceFilter = document.getElementById("filter-source-table");
     const targetFilter = document.getElementById("filter-target-table");
     const clearButton = document.getElementById("clear-filters-btn");
@@ -71,9 +90,12 @@ function setupFilterListeners() {
     }
 }
 
-function applyFilters() {
-    const sourceFilter = document.getElementById("filter-source-table")?.value.toLowerCase() || "";
-    const targetFilter = document.getElementById("filter-target-table")?.value.toLowerCase() || "";
+/**
+ * Apply filters to the dependencies table
+ */
+function applyFilters(): void {
+    const sourceFilter = (document.getElementById("filter-source-table") as HTMLInputElement)?.value.toLowerCase() || "";
+    const targetFilter = (document.getElementById("filter-target-table") as HTMLInputElement)?.value.toLowerCase() || "";
 
     filteredDependenciesData = lastDependenciesData.filter(row => {
         const matchesSource = row[0].toLowerCase().includes(sourceFilter);
@@ -84,9 +106,12 @@ function applyFilters() {
     renderDependenciesTable(filteredDependenciesData);
 }
 
-function clearFilters() {
-    const sourceFilter = document.getElementById("filter-source-table");
-    const targetFilter = document.getElementById("filter-target-table");
+/**
+ * Clear all filters
+ */
+function clearFilters(): void {
+    const sourceFilter = document.getElementById("filter-source-table") as HTMLInputElement | null;
+    const targetFilter = document.getElementById("filter-target-table") as HTMLInputElement | null;
     
     if (sourceFilter) sourceFilter.value = "";
     if (targetFilter) targetFilter.value = "";
@@ -98,7 +123,10 @@ function clearFilters() {
     renderDependenciesTable(filteredDependenciesData);
 }
 
-function sortData(columnIndex) {
+/**
+ * Sort data by column
+ */
+function sortData(columnIndex: number): void {
     // Toggle sort direction if clicking the same column
     if (currentSortColumn === columnIndex) {
         currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
@@ -108,8 +136,8 @@ function sortData(columnIndex) {
     }
 
     filteredDependenciesData.sort((a, b) => {
-        let aVal = a[columnIndex];
-        let bVal = b[columnIndex];
+        let aVal: string | number = a[columnIndex];
+        let bVal: string | number = b[columnIndex];
 
         // For numeric columns (indices 2-5), compare as numbers
         if (columnIndex >= 2) {
@@ -129,9 +157,14 @@ function sortData(columnIndex) {
     renderDependenciesTable(filteredDependenciesData);
 }
 
-function renderDependenciesTable(data) {
+/**
+ * Render the dependencies table
+ */
+function renderDependenciesTable(data: DependencyRow[]): void {
     // Data format: [source_table, target_table, links, rollups, lookups, total]
     const tableContainer = document.getElementById("dependencies-table-container");
+    
+    if (!tableContainer) return;
 
     if (!data || data.length === 0) {
         tableContainer.innerHTML = `
@@ -191,13 +224,16 @@ function renderDependenciesTable(data) {
     const sortableHeaders = tableContainer.querySelectorAll('.sortable-header');
     sortableHeaders.forEach(header => {
         header.addEventListener('click', () => {
-            const columnIndex = parseInt(header.dataset.column);
+            const columnIndex = parseInt((header as HTMLElement).dataset.column || "0");
             sortData(columnIndex);
         });
     });
 }
 
-export function downloadTableDependenciesCSV() {
+/**
+ * Download table dependencies as CSV
+ */
+export function downloadTableDependenciesCSV(): void {
     if (!lastDependenciesData || lastDependenciesData.length === 0) {
         alert("No data to download");
         return;
