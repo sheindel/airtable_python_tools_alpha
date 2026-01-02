@@ -10,17 +10,93 @@ Python tools for analyzing Airtable bases with both CLI and web interfaces.
 - **Schema Generation**: Export to PostgreSQL and TypeScript types
 - **Unused Fields Detection**: Find fields with no dependents
 
-## Quick Start
+## Installation & Setup
 
-**Requirements**: Python ≥3.12, Node.js (for build pipeline)
+This repository supports three usage scenarios:
+
+### 1. Python CLI Only
+
+If you only need the command-line tools:
 
 ```bash
-# Install dependencies
+# Install Python dependencies (requires Python ≥3.12)
 uv sync
+
+# Run CLI commands
+uv run python main.py --help
+```
+
+### 2. Web App Only
+
+If you only need to build/deploy the web interface:
+
+```bash
+# Install Node dependencies (requires Node.js ≥20)
 npm install
 
-# Build CSS and TypeScript (required before running web app)
+# Build CSS and TypeScript
 npm run build
+
+# Generate PyScript config
+uv sync
+uv run python scripts/generate_pyscript_config.py
+```
+
+### 3. Full Development Environment
+
+For development on both CLI and web:
+
+```bash
+### Python Development
+
+```bash
+# Run tests with coverage
+uv run pytest --cov=web --cov-report=html
+
+# Install dev dependencies
+uv sync --group dev
+
+# Generate PyScript config (auto-discovers .py files)
+uv run python scripts/generate_pyscript_config.py
+```
+
+### Frontend Development
+
+```bash
+# Watch CSS and TypeScript for changes (runs both in parallel)
+npm run watch
+
+# Or separately:
+npm run watch:css  # Tailwind CSS
+npm run watch:ts   # TypeScript compilation
+
+# Full dev mode (CSS + TS + web server)
+npm run dev
+```
+
+### Build Pipeline
+
+The web application requires building both CSS and TypeScript:
+
+```bash
+# Build everything (required before deploying)
+npm run build
+
+# Or separately:
+npm run build:css  # Compile Tailwind CSS to web/output.css
+npm run build:ts   # Compile TypeScript to web/modules/*.js
+
+# Or use watch mode for active development
+npm run dev  # Runs watch:css, watch:ts, and web server
+```
+
+## Quick Start
+
+**Requirements**: Python ≥3.12 (CLI/web), Node.js ≥20 (web only)
+
+```bash
+# Full setup
+uv sync && npm install && npm run build
 
 # Run web application
 uv run python main.py run-web
