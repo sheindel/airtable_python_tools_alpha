@@ -127,12 +127,38 @@ uv run python main.py evaluate-formula <base-id> <field-id>
 # Run tests with coverage
 uv run pytest --cov=web --cov-report=html
 
+# Run performance benchmarks
+uv run pytest tests/test_performance_benchmarks.py -v -s
+
+# Run benchmarks with external schema
+BENCHMARK_SCHEMA=/path/to/schema.json uv run pytest tests/test_performance_benchmarks.py -v
+
 # Watch CSS and TypeScript for changes
 npm run watch
 
 # Generate PyScript config
 uv run python scripts/generate_pyscript_config.py
 ```
+
+### Performance Testing
+
+The project includes performance benchmarks to track code generation speed:
+
+```bash
+# Run all benchmarks (uses default demo schema)
+uv run pytest tests/test_performance_benchmarks.py -v -s
+
+# Use a custom schema for benchmarking
+BENCHMARK_SCHEMA=/path/to/large-schema.json uv run pytest tests/test_performance_benchmarks.py -v
+
+# Or place schemas in tests/schemas/ directory (gitignored)
+# Files like tests/schemas/benchmark.json are automatically detected
+```
+
+**External Schemas**: To test with large, real-world schemas without committing them:
+1. Place schema JSON files in `tests/schemas/` (directory is gitignored)
+2. Or set environment variable: `SCHEMA_PATH=/path/to/schema.json`
+3. See [tests/schemas/README.md](tests/schemas/README.md) for details
 
 See [web/TYPESCRIPT.md](web/TYPESCRIPT.md) for TypeScript development details.
 

@@ -250,7 +250,7 @@
                         <option value="unused-fields">Unused Fields</option>
                         <option value="formula-evaluator">Formula Evaluator</option>
                         <option value="postgres-schema">PostgreSQL Schema</option>
-                        <option value="types-generator">Types Generator</option>
+                        <option value="types-generator">Code Generator</option>
                     </select>
                 </div>
                 
@@ -290,8 +290,8 @@
                             PostgreSQL Schema
                         </button>
                         <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600 whitespace-nowrap" 
-                                data-tab="types-generator">
-                            Types Generator
+                                data-tab="code-generator">
+                            Code Generator
                         </button>
                     </nav>
                 </div>
@@ -937,11 +937,50 @@
                 </div>
             </div>
 
-            <!-- Types Generator Tab -->
-            <div id="types-generator-tab" class="tab-content hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md transition-colors duration-200">
-                <h2 class="text-xl font-semibold mb-4 dark:text-white">Types Generator</h2>
+            <!-- Code Generator Tab (NEW Workflow-Based) -->
+            <div id="code-generator-tab" class="tab-content hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md transition-colors duration-200">
+                <h2 class="text-xl font-semibold mb-4 dark:text-white">Code Generator</h2>
                 <p class="text-gray-600 dark:text-gray-400 mb-4">
-                    Generate TypeScript or Python type definitions from your Airtable schema to use in your applications for type safety.
+                    Generate production-ready code from your Airtable schema. Choose your workflow and get tailored code packages for your use case.
+                </p>
+
+                <!-- Step 1: Workflow Selection -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-3 dark:text-white">Step 1: What are you building?</h3>
+                    <div id="workflow-selector">
+                        <!-- Workflow cards will be injected here by Python -->
+                    </div>
+                </div>
+
+                <!-- Step 2: Configuration Options -->
+                <div id="workflow-options" class="mb-6">
+                    <!-- Options form will be injected here based on workflow selection -->
+                </div>
+
+                <!-- Generate Button -->
+                <button id="generate-code-button" onclick="window.generateCodeFromWorkflow()" 
+                        class="hidden w-full bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold py-2.5 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150 mb-6">
+                    Generate Code
+                </button>
+
+                <!-- Output -->
+                <div id="code-generator-output" class="mt-6">
+                    <div class="text-center py-12 text-gray-500 dark:text-gray-400 italic">
+                        Select a workflow above to get started
+                    </div>
+                </div>
+            </div>
+
+            <!-- Types Generator Tab (LEGACY - Keep for backward compatibility) -->
+            <div id="types-generator-tab" class="tab-content hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md transition-colors duration-200">
+                <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
+                    <p class="text-sm text-yellow-800 dark:text-yellow-300">
+                        <strong>Note:</strong> This tab has been renamed to "Code Generator" with an improved workflow-based interface. This legacy version is kept for backward compatibility.
+                    </p>
+                </div>
+                <h2 class="text-xl font-semibold mb-4 dark:text-white">Types Generator (Legacy)</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">
+                    Generate TypeScript, Python, or SQL code from your Airtable schema. Create type definitions, SQL schemas with computed fields (formulas, lookups, rollups), and views for easy querying.
                 </p>
 
                 <!-- Options -->
@@ -956,34 +995,60 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="types-language">Language:</label>
-                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="types-language">
+                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="types-language" onchange="updateTypeOptions()">
                                 <option value="typescript">TypeScript</option>
                                 <option value="python-dataclass">Python (dataclass)</option>
                                 <option value="python-typeddict">Python (TypedDict)</option>
+                                <option value="sql-functions">SQL (Functions)</option>
+                                <option value="sql-triggers">SQL (Triggers)</option>
                             </select>
                             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Choose the target language for type generation.</p>
                         </div>
+                        <div id="sql-dialect-container" class="hidden">
+                            <label class="block mb-2 text-sm font-medium dark:text-gray-200" for="types-sql-dialect">SQL Dialect:</label>
+                            <select class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="types-sql-dialect">
+                                <option value="postgresql">PostgreSQL</option>
+                                <option value="mysql" disabled>MySQL (Coming Soon)</option>
+                                <option value="sqlserver" disabled>SQL Server (Coming Soon)</option>
+                                <option value="sqlite" disabled>SQLite (Coming Soon)</option>
+                            </select>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Choose the SQL database dialect.</p>
+                        </div>
                     </div>
                     
-                    <div class="mt-4">
+                    <div class="mt-4" id="helper-types-container">
                         <label class="flex items-center space-x-2 cursor-pointer">
                             <input type="checkbox" id="types-include-helpers" checked class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
                             <span class="text-sm font-medium dark:text-gray-200">Include helper types (IAirtableAttachment, IAirtableCollaborator)</span>
                         </label>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">Include helper type definitions for Airtable-specific types.</p>
                     </div>
+                    
+                    <div class="mt-4 hidden" id="sql-options-container">
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" id="types-include-formulas" checked class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                            <span class="text-sm font-medium dark:text-gray-200">Generate computed field getters (formulas, lookups, rollups)</span>
+                        </label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">Generate SQL functions/triggers for Airtable computed fields.</p>
+                        
+                        <label class="flex items-center space-x-2 cursor-pointer mt-3">
+                            <input type="checkbox" id="types-include-views" checked class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                            <span class="text-sm font-medium dark:text-gray-200">Generate views combining base and computed fields</span>
+                        </label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">Create SQL views for easy querying with all computed fields.</p>
+                    </div>
                 </div>
 
                 <!-- Generate Button -->
                 <button onclick="generateTypes()" 
                         class="w-full bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold py-2.5 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150 mb-6">
-                    Generate Type Definitions
+                    Generate Code
                 </button>
 
                 <!-- Output -->
                 <div id="types-output" class="mt-6">
                     <div class="text-center py-12 text-gray-500 dark:text-gray-400 italic">
-                        Click "Generate Type Definitions" to create types
+                        Click "Generate Code" to create types or SQL code
                     </div>
                 </div>
             </div>

@@ -189,5 +189,8 @@ demo_base_schema.json
 issues_schema.json
 blog_metadata.json
 
+# External test schemas (not committed to repo)
+tests/schemas/*.json
+
 *.csv
 .~lock*

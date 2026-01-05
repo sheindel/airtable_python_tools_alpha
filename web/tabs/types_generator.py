@@ -12,6 +12,7 @@ from types_generator import (
     generate_all_typescript_files,
     generate_all_python_files,
 )
+from code_generators.sql_runtime_generator import generate_all_sql_files
 
 
 def generate_types():
@@ -23,6 +24,9 @@ def generate_types():
         # Get user selections
         language_select = document.getElementById("types-language")
         include_helpers_checkbox = document.getElementById("types-include-helpers")
+        include_formulas_checkbox = document.getElementById("types-include-formulas")
+        include_views_checkbox = document.getElementById("types-include-views")
+        sql_dialect_select = document.getElementById("types-sql-dialect")
         
         if not language_select:
             raise AnalysisError("Language select element not found")
@@ -38,6 +42,20 @@ def generate_types():
             files = generate_all_python_files(metadata, include_helpers=include_helpers, use_dataclasses=True)
         elif language == "python-typeddict":
             files = generate_all_python_files(metadata, include_helpers=include_helpers, use_dataclasses=False)
+        elif language == "sql-functions" or language == "sql-triggers":
+            # SQL generation options
+            mode = "functions" if language == "sql-functions" else "triggers"
+            dialect = sql_dialect_select.value if sql_dialect_select else "postgresql"
+            include_formulas = include_formulas_checkbox.checked if include_formulas_checkbox else True
+            include_views = include_views_checkbox.checked if include_views_checkbox else True
+            
+            files = generate_all_sql_files(
+                metadata,
+                mode=mode,
+                dialect=dialect,
+                include_formulas=include_formulas,
+                include_views=include_views
+            )
         else:
             raise AnalysisError(f"Unknown language: {language}")
         

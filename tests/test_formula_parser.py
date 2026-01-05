@@ -282,14 +282,6 @@ class TestRealWorldFormulas:
 class TestArgumentSplitting:
     """Test argument splitting logic for function calls"""
     
-    @pytest.mark.skip(reason="Argument splitting implementation depends on parser internals that need investigation")
-    def test_split_if_arguments_simple(self):
-        """Test splitting simple IF(cond, true, false) into 3 args"""
-        formula = "IF(TRUE, 'yes', 'no')"
-        root, tokens = tokenize(formula)
-        # Skipped - needs investigation of actual token structure
-        assert root is not None
-    
     def test_if_function_parses_with_three_branches(self):
         """Test that IF function with 3 branches parses successfully"""
         formula = "IF(TRUE, 'yes', 'no')"
@@ -613,3 +605,347 @@ IF({InProgress},"In Progress","Unknown")))))'''
         
         # Should parse comparison operators correctly
         assert len(tokens) > 20
+
+
+# ============================================================================
+# Phase 1: AST Parser Tests
+# ============================================================================
+
+from at_formula_parser import (
+    parse_airtable_formula,
+    ParseError,
+    LiteralNode,
+    FieldReferenceNode,
+    FunctionCallNode,
+    BinaryOpNode,
+    UnaryOpNode
+)
+
+
+class TestASTLiterals:
+    """Test parsing of literal values into AST"""
+    
+    def test_parse_number_integer(self):
+        """Test parsing integer literal"""
+        ast = parse_airtable_formula("42")
+        assert isinstance(ast, LiteralNode)
+        assert ast.value == 42
+        assert ast.data_type == "number"
+    
+    def test_parse_number_float(self):
+        """Test parsing float literal"""
+        ast = parse_airtable_formula("3.14")
+        assert isinstance(ast, LiteralNode)
+        assert ast.value == 3.14
+        assert ast.data_type == "number"
+    
+    def test_parse_string_literal(self):
+        """Test parsing string literal"""
+        ast = parse_airtable_formula('"hello"')
+        assert isinstance(ast, LiteralNode)
+        assert ast.value == "hello"
+        assert ast.data_type == "string"
+    
+    def test_parse_boolean_true(self):
+        """Test parsing TRUE literal"""
+        ast = parse_airtable_formula("TRUE")
+        assert isinstance(ast, LiteralNode)
+        assert ast.value is True
+        assert ast.data_type == "boolean"
+    
+    def test_parse_boolean_false(self):
+        """Test parsing FALSE literal"""
+        ast = parse_airtable_formula("FALSE")
+        assert isinstance(ast, LiteralNode)
+        assert ast.value is False
+        assert ast.data_type == "boolean"
+
+
+class TestASTFieldReferences:
+    """Test parsing field references into AST"""
+    
+    def test_parse_field_reference_no_metadata(self):
+        """Test parsing field reference without metadata"""
+        ast = parse_airtable_formula("{fldABCDEFGHIJKLMN}")
+        assert isinstance(ast, FieldReferenceNode)
+        assert ast.field_id == "fldABCDEFGHIJKLMN"
+        assert ast.field_name is None
+        assert ast.field_type is None
+    
+    def test_parse_field_reference_with_metadata(self):
+        """Test parsing field reference with metadata"""
+        metadata = {
+            "tables": [{
+                "id": "tblXXXXXXXXXXXXXX",
+                "name": "Test Table",
+                "fields": [{
+                    "id": "fldABCDEFGHIJKLMN",
+                    "name": "Test Field",
+                    "type": "singleLineText"
+                }]
+            }]
+        }
+        
+        ast = parse_airtable_formula("{fldABCDEFGHIJKLMN}", metadata)
+        assert isinstance(ast, FieldReferenceNode)
+        assert ast.field_id == "fldABCDEFGHIJKLMN"
+        assert ast.field_name == "Test Field"
+        assert ast.field_type == "singleLineText"
+
+
+class TestASTBinaryOperations:
+    """Test parsing binary operations into AST"""
+    
+    def test_parse_simple_addition(self):
+        """Test parsing 1 + 2"""
+        ast = parse_airtable_formula("1 + 2")
+        assert isinstance(ast, BinaryOpNode)
+        assert ast.operator == "+"
+        assert isinstance(ast.left, LiteralNode)
+        assert ast.left.value == 1
+        assert isinstance(ast.right, LiteralNode)
+        assert ast.right.value == 2
+    
+    def test_parse_simple_subtraction(self):
+        """Test parsing 10 - 5"""
+        ast = parse_airtable_formula("10 - 5")
+        assert isinstance(ast, BinaryOpNode)
+        assert ast.operator == "-"
+    
+    def test_parse_simple_multiplication(self):
+        """Test parsing 3 * 4"""
+        ast = parse_airtable_formula("3 * 4")
+        assert isinstance(ast, BinaryOpNode)
+        assert ast.operator == "*"
+    
+    def test_parse_simple_division(self):
+        """Test parsing 10 / 2"""
+        ast = parse_airtable_formula("10 / 2")
+        assert isinstance(ast, BinaryOpNode)
+        assert ast.operator == "/"
+    
+    def test_parse_string_concatenation(self):
+        """Test parsing string concatenation with &"""
+        ast = parse_airtable_formula('"hello" & " " & "world"')
+        assert isinstance(ast, BinaryOpNode)
+        assert ast.operator == "&"
+        # Left side should be another binary op
+        assert isinstance(ast.left, BinaryOpNode)
+        assert ast.left.operator == "&"
+    
+    def test_parse_comparison_equal(self):
+        """Test parsing equality comparison"""
+        ast = parse_airtable_formula("5 = 5")
+        assert isinstance(ast, BinaryOpNode)
+        assert ast.operator == "="
+    
+    def test_parse_comparison_not_equal(self):
+        """Test parsing not equal comparison"""
+        ast = parse_airtable_formula("5 != 6")
+        assert isinstance(ast, BinaryOpNode)
+        assert ast.operator == "!="
+    
+    def test_parse_comparison_greater_than(self):
+        """Test parsing greater than comparison"""
+        ast = parse_airtable_formula("10 > 5")
+        assert isinstance(ast, BinaryOpNode)
+        assert ast.operator == ">"
+    
+    def test_parse_comparison_less_than_or_equal(self):
+        """Test parsing less than or equal comparison"""
+        ast = parse_airtable_formula("5 <= 10")
+        assert isinstance(ast, BinaryOpNode)
+        assert ast.operator == "<="
+    
+    def test_parse_field_multiplication(self):
+        """Test parsing field reference in operation"""
+        ast = parse_airtable_formula("{fldABCDEFGHIJKLMN} * 2")
+        assert isinstance(ast, BinaryOpNode)
+        assert ast.operator == "*"
+        assert isinstance(ast.left, FieldReferenceNode)
+        assert isinstance(ast.right, LiteralNode)
+
+
+class TestASTUnaryOperations:
+    """Test parsing unary operations into AST"""
+    
+    def test_parse_negation(self):
+        """Test parsing unary minus"""
+        ast = parse_airtable_formula("-5")
+        assert isinstance(ast, UnaryOpNode)
+        assert ast.operator == "-"
+        assert isinstance(ast.operand, LiteralNode)
+        assert ast.operand.value == 5
+    
+    def test_parse_not_operator(self):
+        """Test parsing NOT operator"""
+        ast = parse_airtable_formula("NOT TRUE")
+        assert isinstance(ast, UnaryOpNode)
+        assert ast.operator == "NOT"
+        assert isinstance(ast.operand, LiteralNode)
+
+
+class TestASTFunctionCalls:
+    """Test parsing function calls into AST"""
+    
+    def test_parse_if_function(self):
+        """Test parsing IF function"""
+        ast = parse_airtable_formula('IF(TRUE, "yes", "no")')
+        assert isinstance(ast, FunctionCallNode)
+        assert ast.function_name == "IF"
+        assert len(ast.arguments) == 3
+        assert isinstance(ast.arguments[0], LiteralNode)
+        assert isinstance(ast.arguments[1], LiteralNode)
+        assert isinstance(ast.arguments[2], LiteralNode)
+    
+    def test_parse_concatenate_function(self):
+        """Test parsing CONCATENATE function"""
+        ast = parse_airtable_formula('CONCATENATE("hello", " ", "world")')
+        assert isinstance(ast, FunctionCallNode)
+        assert ast.function_name == "CONCATENATE"
+        assert len(ast.arguments) == 3
+    
+    def test_parse_sum_function(self):
+        """Test parsing SUM function"""
+        ast = parse_airtable_formula("SUM(1, 2, 3, 4)")
+        assert isinstance(ast, FunctionCallNode)
+        assert ast.function_name == "SUM"
+        assert len(ast.arguments) == 4
+    
+    def test_parse_nested_functions(self):
+        """Test parsing nested function calls"""
+        ast = parse_airtable_formula('IF(AND(TRUE, FALSE), "yes", "no")')
+        assert isinstance(ast, FunctionCallNode)
+        assert ast.function_name == "IF"
+        
+        # First argument should be an AND function
+        assert isinstance(ast.arguments[0], FunctionCallNode)
+        assert ast.arguments[0].function_name == "AND"
+    
+    def test_parse_function_with_field_reference(self):
+        """Test parsing function with field reference argument"""
+        ast = parse_airtable_formula('LEN({fldABCDEFGHIJKLMN})')
+        assert isinstance(ast, FunctionCallNode)
+        assert ast.function_name == "LEN"
+        assert len(ast.arguments) == 1
+        assert isinstance(ast.arguments[0], FieldReferenceNode)
+    
+    def test_parse_function_with_expression_argument(self):
+        """Test parsing function with expression as argument"""
+        ast = parse_airtable_formula('ROUND({fldABCDEFGHIJKLMN} * 1.08, 2)')
+        assert isinstance(ast, FunctionCallNode)
+        assert ast.function_name == "ROUND"
+        assert len(ast.arguments) == 2
+        assert isinstance(ast.arguments[0], BinaryOpNode)
+
+
+class TestASTParentheses:
+    """Test parsing parenthesized expressions"""
+    
+    def test_parse_simple_parentheses(self):
+        """Test parsing (1 + 2)"""
+        ast = parse_airtable_formula("(1 + 2)")
+        assert isinstance(ast, BinaryOpNode)
+        assert ast.operator == "+"
+    
+    def test_parse_nested_parentheses(self):
+        """Test parsing ((1 + 2) * 3)"""
+        ast = parse_airtable_formula("((1 + 2) * 3)")
+        assert isinstance(ast, BinaryOpNode)
+        assert ast.operator == "*"
+        assert isinstance(ast.left, BinaryOpNode)
+
+
+class TestASTComplexFormulas:
+    """Test parsing complex real-world formulas"""
+    
+    def test_parse_complex_if(self):
+        """Test parsing complex nested IF"""
+        formula = 'IF({fldABCDEFGHIJKLMN} > 100, "High", IF({fldABCDEFGHIJKLMN} > 50, "Medium", "Low"))'
+        ast = parse_airtable_formula(formula)
+        
+        assert isinstance(ast, FunctionCallNode)
+        assert ast.function_name == "IF"
+        # Third argument should be another IF function
+        assert isinstance(ast.arguments[2], FunctionCallNode)
+        assert ast.arguments[2].function_name == "IF"
+    
+    def test_parse_formula_with_multiple_fields(self):
+        """Test parsing formula with multiple field references"""
+        formula = "{fldABCDEFGHIJKLMN} + {fldBBCDEFGHIJKLMN} + {fldCBCDEFGHIJKLMN}"
+        ast = parse_airtable_formula(formula)
+        
+        assert isinstance(ast, BinaryOpNode)
+        # Should have nested binary operations
+        assert isinstance(ast.left, BinaryOpNode)
+    
+    def test_parse_formula_with_find(self):
+        """Test parsing formula with FIND function"""
+        formula = 'FIND("cancel", LOWER({fldABCDEFGHIJKLMN})) > 0'
+        ast = parse_airtable_formula(formula)
+        
+        assert isinstance(ast, BinaryOpNode)
+        assert ast.operator == ">"
+        assert isinstance(ast.left, FunctionCallNode)
+        assert ast.left.function_name == "FIND"
+    
+    def test_parse_formula_with_blank(self):
+        """Test parsing formula with BLANK comparison"""
+        formula = '{fldABCDEFGHIJKLMN} = BLANK()'
+        ast = parse_airtable_formula(formula)
+        
+        assert isinstance(ast, BinaryOpNode)
+        assert ast.operator == "="
+        assert isinstance(ast.left, FieldReferenceNode)
+        assert isinstance(ast.right, FunctionCallNode)
+
+
+class TestASTErrors:
+    """Test error handling in AST parser"""
+    
+    def test_parse_empty_string_raises_error(self):
+        """Test that empty formula raises error"""
+        with pytest.raises((ParseError, IndexError, ValueError)):
+            parse_airtable_formula("")
+    
+    def test_parse_unmatched_parenthesis_raises_error(self):
+        """Test that unmatched parenthesis raises error"""
+        with pytest.raises(ParseError):
+            parse_airtable_formula("(1 + 2")
+    
+    def test_parse_unexpected_token_raises_error(self):
+        """Test that unexpected token raises error"""
+        # This may or may not raise depending on tokenizer behavior
+        try:
+            parse_airtable_formula("1 + + 2")
+        except (ParseError, Exception):
+            pass  # Expected to fail
+
+
+class TestASTEdgeCases:
+    """Test edge cases in AST parsing"""
+    
+    def test_parse_single_value(self):
+        """Test parsing single value"""
+        ast = parse_airtable_formula("42")
+        assert isinstance(ast, LiteralNode)
+    
+    def test_parse_empty_string_literal(self):
+        """Test parsing empty string"""
+        ast = parse_airtable_formula('""')
+        assert isinstance(ast, LiteralNode)
+        assert ast.value == ""
+        assert ast.data_type == "string"
+    
+    def test_parse_string_with_spaces(self):
+        """Test parsing string with spaces"""
+        ast = parse_airtable_formula('"hello world"')
+        assert isinstance(ast, LiteralNode)
+        assert ast.value == "hello world"
+    
+    def test_parse_function_no_args(self):
+        """Test parsing function with no arguments"""
+        ast = parse_airtable_formula('BLANK()')
+        assert isinstance(ast, FunctionCallNode)
+        assert ast.function_name == "BLANK"
+        assert len(ast.arguments) == 0

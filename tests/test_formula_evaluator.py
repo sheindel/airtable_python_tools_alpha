@@ -356,10 +356,9 @@ class TestStringComparisonSimplification:
         assert "{fldVerified00001}" in result
         # May or may not have TRUE depending on implementation
     
-    @pytest.mark.xfail(reason="OR short-circuit optimization not yet implemented for TRUE in middle position")
     def test_or_with_field_true_and_another_field(self):
         """OR({fieldA}, TRUE, {fieldC}) → TRUE (should short-circuit)"""
-        result = simplify_formula("OR({fldCondA0000001}, TRUE, {fldCondC0000001})")
+        result = simplify_formula("OR({fldCondA000000001}, TRUE, {fldCondC000000001})")
         # Should short-circuit to TRUE since TRUE appears in arguments
         assert result.upper() == "TRUE"
 
@@ -404,8 +403,8 @@ class TestRealWorldExamples:
     
     def test_partial_eval_short_circuit_or(self):
         """Real-world: short-circuit OR with known TRUE value"""
-        formula = "OR({fldCondA0000001}, {fldCondB0000001}, {fldCondC0000001})"
-        values = {'fldCondB0000001': "TRUE"}
+        formula = "OR({fldCondA000000001}, {fldCondB000000001}, {fldCondC000000001})"
+        values = {'fldCondB000000001': "TRUE"}
         substituted = substitute_field_values(formula, values)
         simplified = simplify_formula(substituted)
         
@@ -458,7 +457,6 @@ class TestNumericFunctions:
         result = simplify_formula("ABS(5)")
         assert float(result) == 5.0
     
-    @pytest.mark.xfail(reason="ABS negative handling not working as expected")
     def test_abs_negative(self):
         result = simplify_formula("ABS(-5)")
         # May not fully evaluate negative literals, but should not crash

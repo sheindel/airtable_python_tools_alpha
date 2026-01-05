@@ -13,7 +13,18 @@ import pyodide
 from pyscript import window
 
 # Import tab modules
-from tabs import dependency_mapper, dependency_analysis, formula_grapher, formula_compressor, complexity_scorecard, unused_fields, formula_evaluator, postgres_schema, types_generator
+from tabs import (
+    dependency_mapper, 
+    dependency_analysis, 
+    formula_grapher, 
+    formula_compressor, 
+    complexity_scorecard, 
+    unused_fields, 
+    formula_evaluator, 
+    postgres_schema, 
+    types_generator,
+    code_generator
+)
 
 # Store current active tab
 current_tab = "dependency-mapper"
@@ -33,6 +44,7 @@ def initialize_tabs():
     formula_evaluator.initialize()
     postgres_schema.initialize()
     types_generator.initialize()
+    code_generator.initialize()  # NEW: Initialize code generator tab
     
     print("All tabs initialized")
 

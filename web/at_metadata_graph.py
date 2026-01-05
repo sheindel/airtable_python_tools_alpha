@@ -1,6 +1,7 @@
 from at_types import AirTableFieldMetadata, AirtableMetadata
 import networkx as nx
 import re
+from typing import List, Dict, Tuple
 
 
 class Node:
@@ -709,4 +710,123 @@ def get_table_to_table_dependencies(metadata: AirtableMetadata) -> dict:
     dependencies = {k: v for k, v in dependencies.items() if v}
     
     return dependencies
+
+
+# ============================================================================
+# Phase 1: Formula Depth Calculator
+# ============================================================================
+
+def get_formula_depth(field_id: str, G: nx.DiGraph) -> int:
+    """
+    Calculate the dependency depth of a formula field.
+    
+    Depth 0: Basic fields (no dependencies)
+    Depth 1: Formulas that only reference basic fields
+    Depth 2: Formulas that reference depth-1 formulas
+    Etc.
+    
+    Uses backward traversal of dependency graph.
+    
+    Args:
+        field_id: Field ID to calculate depth for
+        G: NetworkX DiGraph from metadata_to_graph()
+        
+    Returns:
+        int: Dependency depth (0 = no dependencies, higher = more dependency layers)
+    """
+    if field_id not in G.nodes:
+        raise ValueError(f"Field ID {field_id} not found in graph")
+    
+    # Check if this is a basic field with no dependencies
+    predecessors = list(G.predecessors(field_id))
+    if not predecessors:
+        return 0
+    
+    # Calculate depth recursively as 1 + max depth of dependencies
+    max_predecessor_depth = 0
+    for pred in predecessors:
+        # Skip table nodes (they're not fields)
+        if G.nodes[pred].get("type") == "table":
+            continue
+        
+        pred_depth = get_formula_depth(pred, G)
+        max_predecessor_depth = max(max_predecessor_depth, pred_depth)
+    
+    return max_predecessor_depth + 1
+
+
+def get_computation_order(metadata: dict) -> List[List[str]]:
+    """
+    Return field IDs grouped by computation depth.
+    
+    Fields within the same depth can be computed in parallel.
+    Fields must be computed in depth order (depth 0 first, then depth 1, etc.).
+    
+    Args:
+        metadata: AirtableMetadata dict
+        
+    Returns:
+        List[List[str]]: List of field ID lists, where index = depth level
+            e.g., [[depth_0_fields], [depth_1_fields], [depth_2_fields], ...]
+    """
+    G = metadata_to_graph(metadata)
+    
+    # Calculate depth for all field nodes
+    field_depths: Dict[str, int] = {}
+    
+    for node_id in G.nodes():
+        node_data = G.nodes[node_id]
+        # Skip table nodes
+        if node_data.get("type") != "field":
+            continue
+        
+        # Skip invalid fields
+        if node_data.get("metadata", {}).get("options", {}).get("isValid") is False:
+            continue
+        
+        depth = get_formula_depth(node_id, G)
+        field_depths[node_id] = depth
+    
+    # Group fields by depth
+    max_depth = max(field_depths.values()) if field_depths else 0
+    depth_groups: List[List[str]] = [[] for _ in range(max_depth + 1)]
+    
+    for field_id, depth in field_depths.items():
+        depth_groups[depth].append(field_id)
+    
+    return depth_groups
+
+
+def get_computation_order_with_metadata(metadata: dict) -> List[List[Dict[str, any]]]:
+    """
+    Return field information grouped by computation depth.
+    
+    Similar to get_computation_order(), but includes field metadata for easier display.
+    
+    Args:
+        metadata: AirtableMetadata dict
+        
+    Returns:
+        List[List[Dict]]: List of field info lists, where index = depth level
+            Each field info dict contains: id, name, type, table_name, depth
+    """
+    G = metadata_to_graph(metadata)
+    depth_groups = get_computation_order(metadata)
+    
+    # Enrich with metadata
+    result = []
+    for depth, field_ids in enumerate(depth_groups):
+        fields_info = []
+        for field_id in field_ids:
+            node_data = G.nodes[field_id]
+            fields_info.append({
+                "id": field_id,
+                "name": node_data.get("name", ""),
+                "type": node_data.get("field_type", ""),
+                "table_name": node_data.get("table_name", ""),
+                "depth": depth
+            })
+        result.append(fields_info)
+    
+    return result
     

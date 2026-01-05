@@ -374,13 +374,31 @@ def tokenize_formula(formula: str) -> list:
             tokens.append({'type': 'string', 'value': value})
             continue
         
-        # Numbers
+        # Numbers (including negative numbers after operators or parentheses)
+        is_negative = False
+        if char == '-':
+            # Check if this is a negative number (after '(' or ',')
+            if (not tokens or 
+                tokens[-1]['type'] == 'operator' and tokens[-1]['value'] in '(,'):
+                is_negative = True
+                i += 1
+                if i >= len(formula):
+                    # Just a minus at the end, treat as operator
+                    i -= 1
+                    tokens.append({'type': 'operator', 'value': '-'})
+                    i += 1
+                    continue
+                char = formula[i]
+        
         if char.isdigit() or (char == '.' and i + 1 < len(formula) and formula[i + 1].isdigit()):
             value = ''
             while i < len(formula) and (formula[i].isdigit() or formula[i] == '.'):
                 value += formula[i]
                 i += 1
-            tokens.append({'type': 'number', 'value': float(value)})
+            num_value = float(value)
+            if is_negative:
+                num_value = -num_value
+            tokens.append({'type': 'number', 'value': num_value})
             continue
         
         # Function names and identifiers

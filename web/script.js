@@ -432,3 +432,43 @@ function updateEvalFieldDropdown(tableId) {
 
     setDropdownOptions("eval-field-dropdown", fieldOptions);
 }
+
+// Global function for types generator tab (called from HTML onchange)
+window.updateTypeOptions = function() {
+    const languageSelect = document.getElementById("types-language");
+    const sqlDialectContainer = document.getElementById("sql-dialect-container");
+    const helperTypesContainer = document.getElementById("helper-types-container");
+    const sqlOptionsContainer = document.getElementById("sql-options-container");
+    
+    if (!languageSelect) return;
+    
+    const language = languageSelect.value;
+    const isSql = language === "sql-functions" || language === "sql-triggers";
+    
+    // Show/hide SQL dialect selection
+    if (sqlDialectContainer) {
+        if (isSql) {
+            sqlDialectContainer.classList.remove("hidden");
+        } else {
+            sqlDialectContainer.classList.add("hidden");
+        }
+    }
+    
+    // Show/hide helper types checkbox (TypeScript/Python only)
+    if (helperTypesContainer) {
+        if (isSql) {
+            helperTypesContainer.classList.add("hidden");
+        } else {
+            helperTypesContainer.classList.remove("hidden");
+        }
+    }
+    
+    // Show/hide SQL options (SQL only)
+    if (sqlOptionsContainer) {
+        if (isSql) {
+            sqlOptionsContainer.classList.remove("hidden");
+        } else {
+            sqlOptionsContainer.classList.add("hidden");
+        }
+    }
+}
