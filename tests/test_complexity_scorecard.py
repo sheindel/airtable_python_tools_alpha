@@ -372,3 +372,128 @@ class TestComplexityScoring:
             if lookup_field:
                 # Should have some complexity
                 assert lookup_field["complexity_score"] > 0
+
+
+# ============================================================================
+# Integration Tests with Real Airtable Data
+# ============================================================================
+
+@pytest.mark.airtable_live
+class TestComplexityScorecardIntegration:
+    """Integration tests using real Airtable data.
+    
+    These tests validate complexity scoring with real-world bases that have
+    deeply nested formulas, multiple rollups, and complex cross-table dependencies
+    that don't exist in synthetic test data.
+    """
+    
+    def test_analyze_real_base_complexity(self, airtable_schema):
+        """Test complexity analysis on real Airtable base."""
+        with patch('tabs.complexity_scorecard.get_local_storage_metadata', return_value=airtable_schema):
+            all_complexity = get_all_field_complexity()
+            
+            assert isinstance(all_complexity, list)
+            assert len(all_complexity) > 0, "Should analyze at least one field"
+            
+            # Verify structure of results
+            for field_data in all_complexity:
+                assert "field_name" in field_data
+                assert "table_name" in field_data
+                assert "field_type" in field_data
+                assert "complexity_score" in field_data
+                assert isinstance(field_data["complexity_score"], (int, float))
+                assert field_data["complexity_score"] >= 0
+    
+    def test_real_complexity_distribution(self, airtable_schema):
+        """Test that real bases have realistic complexity distributions."""
+        with patch('tabs.complexity_scorecard.get_local_storage_metadata', return_value=airtable_schema):
+            all_complexity = get_all_field_complexity()
+            
+            if len(all_complexity) == 0:
+                pytest.skip("No fields in test base")
+            
+            scores = [f["complexity_score"] for f in all_complexity]
+            
+            # Real bases should have variety in complexity
+            min_score = min(scores)
+            max_score = max(scores)
+            
+            # Should have at least one simple field (score 0-1)
+            assert min_score <= 1, "Should have some simple fields"
+            
+            # Real bases typically have at least some moderate complexity
+            if len(scores) > 5:  # Only if we have enough fields
+                # At least some fields should have complexity > 2
+                complex_fields = [s for s in scores if s > 2]
+                assert len(complex_fields) > 0, "Real bases should have some complex fields"
+    
+    def test_computed_fields_more_complex_than_simple(self, airtable_schema):
+        """Test that computed fields score higher than simple fields in real base."""
+        with patch('tabs.complexity_scorecard.get_local_storage_metadata', return_value=airtable_schema):
+            all_complexity = get_all_field_complexity()
+            
+            computed_types = {"formula", "rollup", "multipleLookupValues", "count"}
+            simple_types = {"singleLineText", "number", "checkbox"}
+            
+            computed_fields = [f for f in all_complexity if f["field_type"] in computed_types]
+            simple_fields = [f for f in all_complexity if f["field_type"] in simple_types]
+            
+            if not computed_fields or not simple_fields:
+                pytest.skip("Need both computed and simple fields in test base")
+            
+            # Average complexity should be higher for computed fields
+            avg_computed = sum(f["complexity_score"] for f in computed_fields) / len(computed_fields)
+            avg_simple = sum(f["complexity_score"] for f in simple_fields) / len(simple_fields)
+            
+            assert avg_computed > avg_simple, \
+                f"Computed fields (avg={avg_computed:.2f}) should be more complex than simple fields (avg={avg_simple:.2f})"
+    
+    def test_get_complexity_for_specific_table(self, airtable_schema):
+        """Test getting complexity for a specific table in real base."""
+        if not airtable_schema.get("tables"):
+            pytest.skip("No tables in test base")
+        
+        # Get first table
+        first_table = airtable_schema["tables"][0]
+        table_id = first_table["id"]
+        
+        with patch('tabs.complexity_scorecard.get_local_storage_metadata', return_value=airtable_schema):
+            table_complexity = get_complexity_for_table(table_id)
+            
+            assert isinstance(table_complexity, list)
+            
+            # All fields should be from the correct table
+            for field in table_complexity:
+                assert field["table_name"] == first_table["name"]
+    
+    def test_complexity_summary_on_real_base(self, airtable_schema):
+        """Test generating complexity summary for real base."""
+        with patch('tabs.complexity_scorecard.get_local_storage_metadata', return_value=airtable_schema):
+            summary = get_complexity_summary()
+            
+            assert "total_fields" in summary
+            assert "average_complexity" in summary
+            assert "max_complexity" in summary
+            assert "by_table" in summary
+            
+            assert summary["total_fields"] > 0
+            assert summary["average_complexity"] >= 0
+            assert summary["max_complexity"] >= 0
+            assert isinstance(summary["by_table"], dict)
+    
+    def test_export_complexity_csv_with_real_data(self, airtable_schema):
+        """Test CSV export with real base data."""
+        with patch('tabs.complexity_scorecard.get_local_storage_metadata', return_value=airtable_schema):
+            csv_output = export_complexity_to_csv()
+            
+            assert isinstance(csv_output, str)
+            assert len(csv_output) > 0
+            
+            # Should have CSV header
+            lines = csv_output.strip().split('\n')
+            assert len(lines) > 1, "Should have header and at least one data row"
+            
+            header = lines[0]
+            assert "table_name" in header.lower()
+            assert "field_name" in header.lower()
+            assert "complexity" in header.lower() or "score" in header.lower()

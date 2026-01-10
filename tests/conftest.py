@@ -115,3 +115,57 @@ def complex_metadata():
             }
         ]
     }
+
+
+# ============================================================================
+# Airtable Live Testing Configuration
+# ============================================================================
+
+def pytest_addoption(parser):
+    """Add custom command line options."""
+    parser.addoption(
+        "--airtable-live",
+        action="store_true",
+        default=False,
+        help="Run tests that require live Airtable API access"
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    """Skip airtable_live tests unless --airtable-live is passed."""
+    if config.getoption("--airtable-live"):
+        return  # Run all tests
+    
+    skip_live = pytest.mark.skip(reason="need --airtable-live option to run")
+    for item in items:
+        if "airtable_live" in item.keywords:
+            item.add_marker(skip_live)
+
+
+@pytest.fixture
+def airtable_config():
+    """Get Airtable configuration from environment."""
+    import os
+    from helpers.airtable_api import get_api_key, get_base_id
+    
+    try:
+        return {
+            "api_key": get_api_key(),
+            "base_id": get_base_id()
+        }
+    except ValueError as e:
+        pytest.skip(f"Airtable credentials not configured: {e}")
+
+
+@pytest.fixture
+def airtable_schema(airtable_config):
+    """Fetch and cache real Airtable schema."""
+    from helpers.airtable_api import fetch_schema_cached
+    
+    try:
+        return fetch_schema_cached(
+            airtable_config["base_id"],
+            airtable_config["api_key"]
+        )
+    except Exception as e:
+        pytest.skip(f"Could not fetch Airtable schema: {e}")

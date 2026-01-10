@@ -491,6 +491,7 @@ function updateSchemaInfo(): void {
     tableOptions.sort((a, b) => a.text.localeCompare(b.text));
     setDropdownOptions("table-dropdown", tableOptions);
     setDropdownOptions("eval-table-dropdown", tableOptions);
+    setDropdownOptions("evaluator-table-dropdown", tableOptions);
     initializeCompressorDropdowns();
     initializeGrapherDropdowns();
     

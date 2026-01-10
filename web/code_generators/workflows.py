@@ -164,9 +164,10 @@ class DatabaseSchemaWorkflow(CodeGenerationWorkflow):
                 include_formulas=True,
                 include_views=self.options.get("include_views"),
             )
-            files["03_functions.sql"] = sql_files.get("functions.sql", "")
-            if self.options.get("include_views"):
-                files["04_views.sql"] = sql_files.get("views.sql", "")
+            # generate_all_sql_files returns a single file with functions and views combined
+            combined_content = sql_files.get("airtable_computed_functions.sql", "")
+            files["03_functions.sql"] = combined_content
+            # Note: Views are included in 03_functions.sql when include_views=True
         
         if formula_mode == "triggers":
             trigger_files = generate_all_sql_files(
@@ -174,7 +175,7 @@ class DatabaseSchemaWorkflow(CodeGenerationWorkflow):
                 mode="triggers",
                 dialect=dialect,
             )
-            files["05_triggers.sql"] = trigger_files.get("triggers.sql", "")
+            files["05_triggers.sql"] = trigger_files.get("airtable_computed_triggers.sql", "")
         
         return files
 
@@ -268,7 +269,6 @@ pip install -r requirements.txt
 ```bash
 psql your_database < sql/01_schema.sql
 psql your_database < sql/03_functions.sql
-psql your_database < sql/04_views.sql
 ```
 
 ## Usage

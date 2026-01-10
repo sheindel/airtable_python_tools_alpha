@@ -1043,5 +1043,108 @@ def generate_postgres_schema(
         traceback.print_exc()
 
 
+@app.command()
+def generate_evaluator(
+    schema_file: str = Option(..., "--schema", "-s", help="Path to Airtable schema JSON file"),
+    output_file: str = Option(..., "--output", "-o", help="Output Python file path"),
+    table_id: str = Option(..., "--table-id", "-t", help="Table ID to generate evaluator for"),
+    mode: str = Option("dataclass", "--mode", "-m", help="Data access mode: 'dataclass', 'dict', or 'pydantic'"),
+    null_checks: bool = Option(True, "--null-checks/--no-null-checks", help="Include null safety checks in generated code"),
+    type_hints: bool = Option(True, "--type-hints/--no-type-hints", help="Include type hints in generated code"),
+    docstrings: bool = Option(True, "--docstrings/--no-docstrings", help="Include docstrings in generated code"),
+):
+    """
+    Generate a Python formula evaluator with incremental computation
+    
+    This creates a Python module with:
+    - Type definitions for records
+    - Formula computation functions
+    - Incremental update logic (only recomputes changed dependencies)
+    - Computation context for lookups/rollups
+    
+    Examples:
+      # Generate with dataclasses (recommended)
+      generate-evaluator -s schema.json -o evaluator.py -t tblContacts
+      
+      # Generate with dictionaries (more flexible)
+      generate-evaluator -s schema.json -o evaluator.py -t tblContacts -m dict
+      
+      # Generate without null checks (faster but less safe)
+      generate-evaluator -s schema.json -o evaluator.py -t tblContacts --no-null-checks
+    """
+    # Validate mode
+    valid_modes = ["dataclass", "dict", "pydantic"]
+    if mode not in valid_modes:
+        print(f"Error: Invalid mode '{mode}'. Must be one of: {', '.join(valid_modes)}")
+        return
+    
+    # Load schema
+    try:
+        with open(schema_file) as f:
+            metadata = json.load(f)
+    except FileNotFoundError:
+        print(f"Error: Schema file not found: {schema_file}")
+        return
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON in schema file: {e}")
+        return
+    
+    # Validate table_id exists
+    table_names = [t.get("id", t.get("name", "")) for t in metadata.get("tables", [])]
+    if table_id not in table_names:
+        print(f"Error: Table ID '{table_id}' not found in schema")
+        print(f"Available tables: {', '.join(table_names)}")
+        return
+    
+    # Import the generator
+    import sys
+    sys.path.append("web")
+    from code_generators.incremental_runtime_generator import (
+        generate_complete_module,
+        GeneratorOptions
+    )
+    
+    # Configure options
+    options = GeneratorOptions(
+        data_access_mode=mode,
+        include_null_checks=null_checks,
+        include_type_hints=type_hints,
+        include_docstrings=docstrings,
+        include_examples=False,
+        optimize_depth_skipping=True,
+        track_computation_stats=False,
+        output_format="single_file",
+        include_tests=False,
+    )
+    
+    # Generate code
+    try:
+        print(f"Generating evaluator for table {table_id}...")
+        generated_code = generate_complete_module(
+            metadata=metadata,
+            table_id=table_id,
+            options=options
+        )
+        
+        # Write to file
+        with open(output_file, "w") as f:
+            f.write(generated_code)
+        
+        print(f"✓ Successfully generated evaluator: {output_file}")
+        print(f"  Mode: {mode}")
+        print(f"  Null checks: {'enabled' if null_checks else 'disabled'}")
+        print(f"  Type hints: {'enabled' if type_hints else 'disabled'}")
+        
+        # Provide usage hint
+        print(f"\nUsage:")
+        print(f"  from {Path(output_file).stem} import update_record, ComputationContext")
+        print(f"  # See generated file for complete API documentation")
+        
+    except Exception as e:
+        print(f"Error generating evaluator: {e}")
+        import traceback
+        traceback.print_exc()
+
+
 if __name__ == "__main__":
     app()

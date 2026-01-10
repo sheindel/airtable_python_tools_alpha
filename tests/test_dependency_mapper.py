@@ -412,3 +412,143 @@ class TestEdgeCases:
         with patch('tabs.dependency_mapper.get_local_storage_metadata', return_value=metadata):
             graph = generate_table_dependency_graph("tbl001", "TD")
             assert isinstance(graph, str)
+
+
+# ============================================================================
+# Integration Tests with Real Airtable Data
+# ============================================================================
+
+@pytest.mark.airtable_live
+class TestDependencyMapperIntegration:
+    """Integration tests using real Airtable data.
+    
+    These tests validate dependency mapping with real-world bases that have
+    complex cross-table relationships, multiple lookup paths, and edge cases
+    not present in synthetic test data.
+    """
+    
+    def test_generate_dependency_graph_for_real_fields(self, airtable_schema):
+        """Test dependency graph generation for real fields."""
+        from unittest.mock import patch
+        from at_metadata_graph import metadata_to_graph, get_reachable_nodes, graph_to_mermaid
+        
+        if not airtable_schema.get("tables"):
+            pytest.skip("No tables in test base")
+        
+        # Get a field from the first table
+        first_table = airtable_schema["tables"][0]
+        if not first_table.get("fields"):
+            pytest.skip("No fields in first table")
+        
+        first_field = first_table["fields"][0]
+        
+        # Test field-level dependency graph using graph functions
+        G = metadata_to_graph(airtable_schema)
+        field_id = first_field["id"]
+        
+        # Test different directions
+        for direction in ["both", "forward", "backward"]:
+            subgraph = get_reachable_nodes(G, field_id, direction=direction)
+            graph = graph_to_mermaid(subgraph, direction="TD", display_mode="simple")
+            
+            assert isinstance(graph, str)
+            assert len(graph) > 0
+            assert "graph" in graph.lower() or "flowchart" in graph.lower()
+    
+    def test_table_dependency_graph_with_links(self, airtable_schema):
+        """Test dependency graphs for linked record fields."""
+        from unittest.mock import patch
+        
+        # Find a table with a linked record field
+        link_table = None
+        for table in airtable_schema["tables"]:
+            for field in table["fields"]:
+                if field["type"] == "multipleRecordLinks":
+                    link_table = table
+                    break
+            if link_table:
+                break
+        
+        if not link_table:
+            pytest.skip("No linked record fields in test base")
+        
+        with patch('tabs.dependency_mapper.get_local_storage_metadata', return_value=airtable_schema):
+            graph = generate_table_dependency_graph(link_table["id"], "TD")
+            
+            assert isinstance(graph, str)
+            assert len(graph) > 0
+            # Should mention the linked table
+            assert "tbl" in graph  # Should have table references
+    
+    def test_dependency_graph_for_formula_fields(self, airtable_schema):
+        """Test dependency graphs for formula fields in real base."""
+        from unittest.mock import patch
+        from at_metadata_graph import metadata_to_graph, get_reachable_nodes, graph_to_mermaid
+        
+        # Find a formula field
+        formula_field = None
+        for table in airtable_schema["tables"]:
+            for field in table["fields"]:
+                if field["type"] == "formula":
+                    formula_field = field
+                    break
+            if formula_field:
+                break
+        
+        if not formula_field:
+            pytest.skip("No formula fields in test base")
+        
+        # Generate field-level dependency graph
+        G = metadata_to_graph(airtable_schema)
+        subgraph = get_reachable_nodes(G, formula_field["id"], direction="both")
+        graph = graph_to_mermaid(subgraph, direction="TD", display_mode="simple")
+        
+        assert isinstance(graph, str)
+        assert len(graph) > 0
+        # Should include the formula field itself
+        assert formula_field["id"] in graph or formula_field["name"] in graph
+    
+    def test_dependency_graph_for_rollup_fields(self, airtable_schema):
+        """Test dependency graphs for rollup fields in real base."""
+        from unittest.mock import patch
+        from at_metadata_graph import metadata_to_graph, get_reachable_nodes, graph_to_mermaid
+        
+        # Find a rollup field
+        rollup_field = None
+        for table in airtable_schema["tables"]:
+            for field in table["fields"]:
+                if field["type"] == "rollup":
+                    rollup_field = field
+                    break
+            if rollup_field:
+                break
+        
+        if not rollup_field:
+            pytest.skip("No rollup fields in test base")
+        
+        # Generate field-level dependency graph
+        G = metadata_to_graph(airtable_schema)
+        subgraph = get_reachable_nodes(G, rollup_field["id"], direction="both")
+        graph = graph_to_mermaid(subgraph, direction="TD", display_mode="simple")
+        
+        assert isinstance(graph, str)
+        assert len(graph) > 0
+        # Should show cross-table dependency
+        assert "tbl" in graph or "subgraph" in graph.lower()
+    
+    def test_all_fields_generate_valid_graphs(self, airtable_schema):
+        """Test that all fields in real base can generate dependency graphs."""
+        from at_metadata_graph import metadata_to_graph, get_reachable_nodes, graph_to_mermaid
+        
+        G = metadata_to_graph(airtable_schema)
+        
+        # Test a sample of fields from each table
+        for table in airtable_schema["tables"][:3]:  # First 3 tables
+            for field in table["fields"][:5]:  # First 5 fields per table
+                try:
+                    subgraph = get_reachable_nodes(G, field["id"], direction="both")
+                    graph = graph_to_mermaid(subgraph, direction="TD", display_mode="simple")
+                    assert isinstance(graph, str)
+                    assert len(graph) > 0
+                except Exception as e:
+                    pytest.fail(f"Failed to generate graph for field {field['name']}: {e}")

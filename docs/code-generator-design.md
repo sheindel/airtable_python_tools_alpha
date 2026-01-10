@@ -202,8 +202,7 @@ These appear **dynamically** based on Step 1 selection.
 **Generates**:
 - `01_schema.sql` - CREATE TABLE statements
 - `02_generated_columns.sql` - Formula columns (if selected)
-- `03_functions.sql` - SQL functions for complex formulas
-- `04_views.sql` - Convenience views with computed fields
+- `03_functions.sql` - SQL functions for formulas and views with computed fields (combined)
 - `05_triggers.sql` - Automatic update triggers (if selected)
 
 #### For Full-Stack Package
@@ -240,7 +239,6 @@ sql/
   ├─ 01_schema.sql
   ├─ 02_generated_columns.sql
   ├─ 03_functions.sql
-  ├─ 04_views.sql
   └─ 05_triggers.sql
 README.md
 package.json
@@ -511,9 +509,8 @@ class DatabaseSchemaWorkflow(CodeGenerationWorkflow):
                 include_formulas=True,
                 include_views=self.options.get("include_views"),
             )
-            files["03_functions.sql"] = sql_files.get("functions.sql", "")
-            if self.options.get("include_views"):
-                files["04_views.sql"] = sql_files.get("views.sql", "")
+            # generate_all_sql_files returns a single file with functions and views combined
+            files["03_functions.sql"] = sql_files.get("airtable_computed_functions.sql", "")
         
         if formula_mode == "triggers":
             trigger_files = generate_all_sql_files(
@@ -615,7 +612,6 @@ pip install -r requirements.txt
 ```bash
 psql your_database < sql/01_schema.sql
 psql your_database < sql/03_functions.sql
-psql your_database < sql/04_views.sql
 ```
 
 ## Usage

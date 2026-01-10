@@ -250,7 +250,8 @@
                         <option value="unused-fields">Unused Fields</option>
                         <option value="formula-evaluator">Formula Evaluator</option>
                         <option value="postgres-schema">PostgreSQL Schema</option>
-                        <option value="types-generator">Code Generator</option>
+                        <option value="code-generator">Code Generator</option>
+                        <option value="evaluator-generator">Evaluator Generator</option>
                     </select>
                 </div>
                 
@@ -292,6 +293,10 @@
                         <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600 whitespace-nowrap" 
                                 data-tab="code-generator">
                             Code Generator
+                        </button>
+                        <button class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600 whitespace-nowrap" 
+                                data-tab="evaluator-generator">
+                            Evaluator Generator
                         </button>
                     </nav>
                 </div>
@@ -967,6 +972,85 @@
                 <div id="code-generator-output" class="mt-6">
                     <div class="text-center py-12 text-gray-500 dark:text-gray-400 italic">
                         Select a workflow above to get started
+                    </div>
+                </div>
+            </div>
+
+            <!-- Evaluator Generator Tab -->
+            <div id="evaluator-generator-tab" class="tab-content hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md transition-colors duration-200">
+                <h2 class="text-xl font-semibold mb-4 dark:text-white">Incremental Evaluator Generator</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">
+                    Generate efficient Python evaluators for computed fields (formulas, lookups, rollups). These evaluators only recalculate fields when their dependencies change, enabling incremental updates.
+                </p>
+
+                <!-- Step 1: Table Selection -->
+                <div class="mb-6">
+                    <label class="block mb-2 font-semibold dark:text-white">Select Table:</label>
+                    <at-dropdown id="evaluator-table-dropdown" label="Table" onchange=""></at-dropdown>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Choose the table to generate an evaluator for.</p>
+                </div>
+
+                <!-- Step 2: Configuration Options -->
+                <div class="border-2 border-gray-300 dark:border-gray-600 rounded-lg p-4 mb-6">
+                    <h3 class="text-lg font-semibold mb-3 dark:text-white">Configuration Options</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Data Access Mode -->
+                        <div>
+                            <label class="block mb-2 text-sm font-medium dark:text-gray-200">Data Access Mode:</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="radio" id="opt-eval-dataclass" name="eval-data-access" value="dataclass" checked class="w-4 h-4">
+                                    <span class="text-sm dark:text-gray-200">Dataclass (record.field_name)</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="radio" id="opt-eval-dict" name="eval-data-access" value="dict" class="w-4 h-4">
+                                    <span class="text-sm dark:text-gray-200">Dictionary (record["field_name"])</span>
+                                </label>
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Choose how fields are accessed in generated code.</p>
+                        </div>
+
+                        <!-- Code Generation Options -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" id="opt-eval-null-checks" checked class="w-4 h-4 rounded">
+                                <span class="text-sm dark:text-gray-200">Include null safety checks</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" id="opt-eval-type-hints" checked class="w-4 h-4 rounded">
+                                <span class="text-sm dark:text-gray-200">Include type hints</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" id="opt-eval-docstrings" checked class="w-4 h-4 rounded">
+                                <span class="text-sm dark:text-gray-200">Include docstrings</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" id="opt-eval-examples" checked class="w-4 h-4 rounded">
+                                <span class="text-sm dark:text-gray-200">Include usage examples</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" id="opt-eval-optimize" checked class="w-4 h-4 rounded">
+                                <span class="text-sm dark:text-gray-200">Optimize depth skipping</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" id="opt-eval-stats" class="w-4 h-4 rounded">
+                                <span class="text-sm dark:text-gray-200">Track computation stats</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generate Button -->
+                <button onclick="window.generateEvaluatorCode()" 
+                        class="w-full bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold py-2.5 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150 mb-6">
+                    Generate Evaluator
+                </button>
+
+                <!-- Output -->
+                <div id="evaluator-output" class="mt-6">
+                    <div class="text-center py-12 text-gray-500 dark:text-gray-400 italic">
+                        Select a table and click "Generate Evaluator" to create code
                     </div>
                 </div>
             </div>

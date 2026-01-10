@@ -82,7 +82,7 @@ PYTHON_TYPE_MAPPINGS = {
 
 
 def _sanitize_name(name: str) -> str:
-    """Sanitize field/table name for use as identifier"""
+    """Sanitize field/table name for use as identifier, preserving casing"""
     # Replace spaces and special characters
     sanitized = name.replace(" ", "_").replace("-", "_").replace("(", "").replace(")", "")
     # Remove other special characters
@@ -91,6 +91,22 @@ def _sanitize_name(name: str) -> str:
     if sanitized and sanitized[0].isdigit():
         sanitized = "_" + sanitized
     return sanitized
+
+
+def _to_snake_case(name: str) -> str:
+    """Convert a name to snake_case for use as Python identifier (matches incremental_runtime_generator)"""
+    import re
+    # Replace spaces and special chars with underscores
+    name = re.sub(r'[^a-zA-Z0-9]', '_', name)
+    # Convert camelCase to snake_case
+    name = re.sub(r'([a-z])([A-Z])', r'\1_\2', name)
+    # Convert to lowercase
+    name = name.lower()
+    # Remove duplicate underscores
+    name = re.sub(r'_+', '_', name)
+    # Remove leading/trailing underscores
+    name = name.strip('_')
+    return name
 
 
 def _get_typescript_type(field: Dict[str, Any]) -> str:
@@ -318,7 +334,12 @@ def generate_typescript_types(metadata: Dict[str, Any], include_helpers: bool = 
     return "\n".join(lines)
 
 
-def generate_python_types(metadata: Dict[str, Any], include_helpers: bool = True, use_dataclasses: bool = True) -> str:
+def generate_python_types(
+    metadata: Dict[str, Any],
+    include_helpers: bool = True,
+    use_dataclasses: bool = True,
+    mark_computed_fields: bool = False
+) -> str:
     """
     Generate Python type definitions from Airtable metadata
     
@@ -326,6 +347,7 @@ def generate_python_types(metadata: Dict[str, Any], include_helpers: bool = True
         metadata: Airtable metadata dictionary
         include_helpers: Whether to include helper type definitions for attachments/collaborators
         use_dataclasses: Whether to use dataclasses (True) or TypedDict (False)
+        mark_computed_fields: Whether to add comments marking computed fields
     
     Returns:
         Python code as a string
@@ -405,28 +427,70 @@ def generate_python_types(metadata: Dict[str, Any], include_helpers: bool = True
         if use_dataclasses:
             lines.append("@dataclass")
             lines.append(f"class {class_name}:")
+            
+            # Add ID field first if not present
+            has_id = any(f.get("name", "").lower() == "id" for f in fields)
+            if not has_id:
+                lines.append("    id: str  # Record ID")
+            
+            # Mark computed fields in class metadata (if marking is enabled)
+            if mark_computed_fields:
+                computed_field_names = [
+                    _to_snake_case(f.get("name", ""))
+                    for f in fields
+                    if f.get("type", "") in [FIELD_TYPE_FORMULA, FIELD_TYPE_ROLLUP, FIELD_TYPE_LOOKUP, FIELD_TYPE_COUNT]
+                ]
+                if computed_field_names:
+                    lines.append(f"    _computed_fields = {{{', '.join(repr(name) for name in computed_field_names)}}}")
+                    lines.append("")
         else:
             lines.append(f"class {class_name}(TypedDict):")
         
-        for field in fields:
+        # For dataclasses, sort fields so required fields come before optional fields
+        # This is necessary to avoid Python dataclass errors
+        if use_dataclasses:
+            required_fields = [f for f in fields if _is_required_field(f)]
+            optional_fields = [f for f in fields if not _is_required_field(f)]
+            sorted_fields = required_fields + optional_fields
+        else:
+            sorted_fields = fields
+        
+        for field in sorted_fields:
             field_name = field.get("name", "")
             field_id = field.get("id", "")
-            field_type = _get_python_type(field)
+            field_type_str = field.get("type", "")
+            python_type = _get_python_type(field)
             is_required = _is_required_field(field)
             
             # Sanitize field name for Python
-            safe_field_name = _sanitize_name(field_name)
+            # Use snake_case for dataclasses to match incremental_runtime_generator
+            # Use preserved casing for TypedDict to match original API
+            if use_dataclasses:
+                safe_field_name = _to_snake_case(field_name)
+            else:
+                safe_field_name = _sanitize_name(field_name)
+            
+            # Check if this is a computed field
+            is_computed = field_type_str in [FIELD_TYPE_FORMULA, FIELD_TYPE_ROLLUP, FIELD_TYPE_LOOKUP, FIELD_TYPE_COUNT]
+            
+            # Add computed field comment if marking is enabled
+            if mark_computed_fields and is_computed:
+                lines.append(f"    # Computed field: {field_type_str}")
             
             if use_dataclasses:
-                if is_required:
-                    lines.append(f"    {safe_field_name}: {field_type}")
+                # System fields like createdTime and lastModifiedTime are always present
+                # in Airtable, but we give them defaults for easier testing/instantiation
+                if field_type_str in ["createdTime", "lastModifiedTime"]:
+                    lines.append(f"    {safe_field_name}: Optional[{python_type}] = None")
+                elif is_required:
+                    lines.append(f"    {safe_field_name}: {python_type}")
                 else:
-                    lines.append(f"    {safe_field_name}: Optional[{field_type}] = None")
+                    lines.append(f"    {safe_field_name}: Optional[{python_type}] = None")
             else:
                 if is_required:
-                    lines.append(f"    {safe_field_name}: {field_type}")
+                    lines.append(f"    {safe_field_name}: {python_type}")
                 else:
-                    lines.append(f"    {safe_field_name}: NotRequired[{field_type}]")
+                    lines.append(f"    {safe_field_name}: NotRequired[{python_type}]")
         
         lines.append("")
         lines.append("")
@@ -438,7 +502,11 @@ def generate_python_types(metadata: Dict[str, Any], include_helpers: bool = True
         for field in fields:
             field_name = field.get("name", "")
             field_id = field.get("id", "")
-            safe_field_name = _sanitize_name(field_name)
+            # Use same naming as the dataclass/TypedDict fields
+            if use_dataclasses:
+                safe_field_name = _to_snake_case(field_name)
+            else:
+                safe_field_name = _sanitize_name(field_name)
             lines.append(f"    '{safe_field_name}': '{field_id}',")
         
         lines.append("}")
@@ -451,7 +519,11 @@ def generate_python_types(metadata: Dict[str, Any], include_helpers: bool = True
         for field in fields:
             field_name = field.get("name", "")
             field_id = field.get("id", "")
-            safe_field_name = _sanitize_name(field_name)
+            # Use same naming as the dataclass/TypedDict fields
+            if use_dataclasses:
+                safe_field_name = _to_snake_case(field_name)
+            else:
+                safe_field_name = _sanitize_name(field_name)
             lines.append(f"    '{field_id}': '{safe_field_name}',")
         
         lines.append("}")

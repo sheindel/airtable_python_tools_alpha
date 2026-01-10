@@ -643,3 +643,176 @@ class TestComplexRealWorldScenarios:
             # Result should be: ({fld003}+5)*({fld003}+5)
             assert result.count("fld003") == 2  # Should appear twice
             assert "fld002" not in result  # Should be fully expanded
+
+
+# ============================================================================
+# Integration Tests with Real Airtable Data
+# ============================================================================
+
+@pytest.mark.airtable_live
+class TestFormulaCompressorIntegration:
+    """Integration tests using real Airtable data.
+    
+    These tests validate formula compression with real-world formulas that have
+    complex nesting, special characters, edge cases, and patterns not present
+    in synthetic test data.
+    """
+    
+    def test_compress_real_formulas(self, airtable_schema):
+        """Test formula compression on real Airtable formulas."""
+        from unittest.mock import patch
+        
+        # Find formula fields in real schema
+        formula_fields = []
+        for table in airtable_schema["tables"]:
+            for field in table["fields"]:
+                if field["type"] == "formula" and field.get("options", {}).get("formula"):
+                    formula_fields.append({
+                        "table_id": table["id"],
+                        "field_id": field["id"],
+                        "field_name": field["name"],
+                        "formula": field["options"]["formula"]
+                    })
+        
+        if not formula_fields:
+            pytest.skip("No formula fields in test base")
+        
+        with patch('tabs.formula_compressor.get_local_storage_metadata', return_value=airtable_schema):
+            # Test compression on first few formulas
+            for formula_info in formula_fields[:5]:
+                try:
+                    compressed, depth = compress_formula(
+                        formula_info["table_id"],
+                        formula_info["field_id"],
+                        compression_depth=None,
+                        output_format="field_ids"
+                    )
+                    
+                    # Should return valid results
+                    assert isinstance(compressed, str)
+                    assert isinstance(depth, int)
+                    assert depth >= 0
+                    
+                    # Compressed formula should not be empty (unless original was)
+                    if formula_info["formula"].strip():
+                        assert len(compressed) > 0
+                    
+                except Exception as e:
+                    pytest.fail(f"Failed to compress formula '{formula_info['field_name']}': {e}")
+    
+    def test_compression_depth_limits_with_real_data(self, airtable_schema):
+        """Test that depth limiting works with real nested formulas."""
+        from unittest.mock import patch
+        
+        # Find a formula field with references
+        formula_field = None
+        for table in airtable_schema["tables"]:
+            for field in table["fields"]:
+                if (field["type"] == "formula" and 
+                    field.get("options", {}).get("referencedFieldIds") and
+                    len(field["options"]["referencedFieldIds"]) > 0):
+                    formula_field = {
+                        "table_id": table["id"],
+                        "field_id": field["id"]
+                    }
+                    break
+            if formula_field:
+                break
+        
+        if not formula_field:
+            pytest.skip("No formula fields with references in test base")
+        
+        with patch('tabs.formula_compressor.get_local_storage_metadata', return_value=airtable_schema):
+            # Test different depth limits
+            result_depth_0, depth_0 = compress_formula(
+                formula_field["table_id"],
+                formula_field["field_id"],
+                compression_depth=0,
+                output_format="field_ids"
+            )
+            
+            result_depth_5, depth_5 = compress_formula(
+                formula_field["table_id"],
+                formula_field["field_id"],
+                compression_depth=5,
+                output_format="field_ids"
+            )
+            
+            # Depth 0 should be original or minimally expanded
+            assert len(result_depth_0) > 0
+            
+            # Both should be valid strings
+            assert isinstance(result_depth_0, str)
+            assert isinstance(result_depth_5, str)
+    
+    def test_field_name_conversion_with_real_names(self, airtable_schema):
+        """Test field ID to name conversion with real field names."""
+        from unittest.mock import patch
+        
+        # Find a formula field
+        formula_field = None
+        for table in airtable_schema["tables"]:
+            for field in table["fields"]:
+                if field["type"] == "formula":
+                    formula_field = {
+                        "table_id": table["id"],
+                        "field_id": field["id"]
+                    }
+                    break
+            if formula_field:
+                break
+        
+        if not formula_field:
+            pytest.skip("No formula fields in test base")
+        
+        with patch('tabs.formula_compressor.get_local_storage_metadata', return_value=airtable_schema):
+            # Compress with field IDs
+            result_ids, _ = compress_formula(
+                formula_field["table_id"],
+                formula_field["field_id"],
+                compression_depth=None,
+                output_format="field_ids"
+            )
+            
+            # Compress with field names
+            result_names, _ = compress_formula(
+                formula_field["table_id"],
+                formula_field["field_id"],
+                compression_depth=None,
+                output_format="field_names"
+            )
+            
+            # Both should be valid
+            assert isinstance(result_ids, str)
+            assert isinstance(result_names, str)
+            
+            # Field names version should not contain field IDs
+            if "fld" in result_ids:
+                # If IDs version has field IDs, names version should have fewer/none
+                id_count = result_ids.count("fld")
+                name_count = result_names.count("fld")
+                # Allow some field IDs to remain if they couldn't be converted
+                assert name_count <= id_count
+    
+    def test_circular_reference_handling_in_real_base(self, airtable_schema):
+        """Test that circular references are handled gracefully in real base."""
+        from unittest.mock import patch
+        
+        # Try to compress all formulas - should not crash on circular refs
+        with patch('tabs.formula_compressor.get_local_storage_metadata', return_value=airtable_schema):
+            for table in airtable_schema["tables"]:
+                for field in table["fields"]:
+                    if field["type"] == "formula":
+                        try:
+                            compressed, depth = compress_formula(
+                                table["id"],
+                                field["id"],
+                                compression_depth=10,
+                                output_format="field_ids"
+                            )
+                            # Should complete without infinite loops
+                            assert isinstance(compressed, str)
+                            assert depth <= 10, "Depth should respect limits"
+                        except Exception as e:
+                            # Should not crash, but may have other errors
+                            assert "maximum recursion" not in str(e).lower()

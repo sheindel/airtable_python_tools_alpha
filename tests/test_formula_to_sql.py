@@ -94,15 +94,15 @@ class TestConvertAirtableFormula:
         field_map = {"fld123": "amount"}
         result = convert_airtable_formula_to_sql(formula, field_map)
         assert "CASE WHEN amount > 10 THEN" in result
-        assert "\"High\" ELSE \"Low\" END" in result
+        assert "'High' ELSE 'Low' END" in result
     
     def test_concatenation(self):
         """Test string concatenation operator conversion"""
         formula = "{fld123} & \" - \" & {fld456}"
         field_map = {"fld123": "first_name", "fld456": "last_name"}
         result = convert_airtable_formula_to_sql(formula, field_map)
-        # & should be converted to ||
-        assert "first_name || \" - \" || last_name" in result
+        # & should be converted to || and double quotes to single quotes
+        assert "first_name || ' - ' || last_name" in result
     
     def test_lower_function(self):
         """Test LOWER function conversion"""
@@ -220,6 +220,37 @@ class TestIsFormulaConvertible:
         """Test that REGEX functions are marked as not convertible"""
         formula = "REGEX_MATCH({fld123}, \"[0-9]+\")"
         assert is_formula_convertible(formula) is False
+    
+    def test_array_field_reference_not_convertible(self):
+        """Test that formulas referencing array fields are not convertible"""
+        formula = "IF({fld123} = '', 'Empty', 'Not Empty')"
+        field_map = {"fld123": "company"}
+        field_type_map = {"company": "TEXT[]"}
+        
+        # Should be not convertible when field is an array
+        assert is_formula_convertible(formula, field_map, field_type_map) is False
+    
+    def test_non_array_field_reference_is_convertible(self):
+        """Test that formulas with non-array fields are still convertible"""
+        formula = "IF({fld123} = '', 'Empty', 'Not Empty')"
+        field_map = {"fld123": "name"}
+        field_type_map = {"name": "TEXT"}
+        
+        # Should be convertible when field is not an array
+        assert is_formula_convertible(formula, field_map, field_type_map) is True
+    
+    def test_multiple_array_field_references_not_convertible(self):
+        """Test that formulas with multiple array field references are not convertible"""
+        formula = "{fld1}&','&{fld2}&','&{fld3}"
+        field_map = {"fld1": "company", "fld2": "dm_for", "fld3": "billing"}
+        field_type_map = {
+            "company": "TEXT[]",
+            "dm_for": "TEXT[]",
+            "billing": "TEXT[]"
+        }
+        
+        # Should be not convertible when any referenced field is an array
+        assert is_formula_convertible(formula, field_map, field_type_map) is False
 
 
 class TestComplexFormulas:
@@ -274,7 +305,8 @@ class TestEdgeCases:
         formula = "\"Hello World\""
         field_map = {}
         result = convert_airtable_formula_to_sql(formula, field_map)
-        assert result == "\"Hello World\""
+        # Double quotes should be converted to single quotes for PostgreSQL
+        assert result == "'Hello World'"
     
     def test_formula_with_only_number(self):
         """Test formula that's just a number"""

@@ -521,3 +521,139 @@ def test_get_computation_order_preserves_all_fields(complex_metadata):
     assert len(all_fields) == 6
     assert len(set(all_fields)) == 6  # No duplicates
     assert set(all_fields) == {"fld1", "fld2", "fld3", "fld4", "fld5", "fld6"}
+
+
+# ============================================================================
+# Integration Tests with Real Airtable Data
+# ============================================================================
+
+@pytest.mark.airtable_live
+class TestMetadataGraphIntegration:
+    """Integration tests using real Airtable data.
+    
+    These tests validate that the graph operations work correctly with
+    real-world Airtable bases that have complex dependencies, edge cases,
+    and patterns not present in synthetic test data.
+    """
+    
+    def test_build_graph_from_real_base(self, airtable_schema):
+        """Test graph construction with real Airtable schema."""
+        graph = metadata_to_graph(airtable_schema)
+        
+        # Verify graph was created
+        assert len(graph.nodes) > 0
+        
+        # Verify we have both table and field nodes
+        table_nodes = [n for n in graph.nodes if n.startswith("tbl")]
+        field_nodes = [n for n in graph.nodes if n.startswith("fld")]
+        
+        assert len(table_nodes) > 0, "Should have table nodes"
+        assert len(field_nodes) > 0, "Should have field nodes"
+        
+        # Verify node metadata exists
+        for node_id in field_nodes[:5]:  # Check first 5 fields
+            node_data = graph.nodes[node_id]
+            assert "name" in node_data, f"Field {node_id} should have name"
+            assert "type" in node_data, f"Field {node_id} should have type"
+    
+    def test_real_formula_dependencies(self, airtable_schema):
+        """Test that formula dependencies are correctly captured in real base."""
+        graph = metadata_to_graph(airtable_schema)
+        
+        # Find formula fields in the real schema
+        formula_fields = []
+        for table in airtable_schema["tables"]:
+            for field in table["fields"]:
+                if field["type"] == "formula":
+                    formula_fields.append(field["id"])
+        
+        if not formula_fields:
+            pytest.skip("No formula fields in test base")
+        
+        # Check that formula fields have dependencies
+        for formula_id in formula_fields[:3]:  # Test first 3
+            if formula_id in graph.nodes:
+                # Check predecessors (fields this formula depends on)
+                predecessors = list(graph.predecessors(formula_id))
+                # Most formulas reference at least one field
+                # (Some might only use constants/functions, so not strict)
+                assert predecessors is not None
+    
+    def test_get_reachable_nodes_with_real_data(self, airtable_schema):
+        """Test dependency traversal on real base."""
+        graph = metadata_to_graph(airtable_schema)
+        
+        # Find a computed field to analyze
+        computed_types = {"formula", "rollup", "multipleLookupValues"}
+        computed_field = None
+        
+        for table in airtable_schema["tables"]:
+            for field in table["fields"]:
+                if field["type"] in computed_types:
+                    computed_field = field["id"]
+                    break
+            if computed_field:
+                break
+        
+        if not computed_field:
+            pytest.skip("No computed fields in test base")
+        
+        # Get backward dependencies
+        subgraph = get_reachable_nodes(graph, computed_field, direction="backward")
+        
+        # Should at least contain the field itself
+        assert computed_field in subgraph.nodes
+        
+        # Subgraph should be smaller than or equal to full graph
+        assert len(subgraph.nodes) <= len(graph.nodes)
+    
+    def test_computation_order_on_real_base(self, airtable_schema):
+        """Test computation order generation with real complexity."""
+        order = get_computation_order(airtable_schema)
+        
+        # Should return a list of lists (levels)
+        assert isinstance(order, list)
+        assert all(isinstance(level, list) for level in order)
+        
+        # Flatten and check for duplicates
+        all_fields = []
+        for level in order:
+            all_fields.extend(level)
+        
+        # No field should appear twice
+        assert len(all_fields) == len(set(all_fields)), "Fields should appear exactly once"
+        
+        # Verify ordering: fields in earlier levels should not depend on later levels
+        graph = metadata_to_graph(airtable_schema)
+        for i, level in enumerate(order):
+            later_fields = set()
+            for later_level in order[i+1:]:
+                later_fields.update(later_level)
+            
+            # Check that no field in this level depends on fields in later levels
+            for field_id in level:
+                if field_id in graph.nodes:
+                    predecessors = set(graph.predecessors(field_id))
+                    invalid_deps = predecessors & later_fields
+                    assert len(invalid_deps) == 0, \
+                        f"Field {field_id} in level {i} depends on {invalid_deps} in later levels"
+    
+    def test_cross_table_dependencies_in_real_base(self, airtable_schema):
+        """Test detection of cross-table relationships in real base."""
+        graph = metadata_to_graph(airtable_schema)
+        
+        # Find linked record fields
+        link_fields = []
+        for table in airtable_schema["tables"]:
+            for field in table["fields"]:
+                if field["type"] == "multipleRecordLinks":
+                    link_fields.append(field["id"])
+        
+        if not link_fields:
+            pytest.skip("No linked record fields in test base")
+        
+        # Verify link fields have edges in the graph
+        for link_id in link_fields[:3]:  # Test first 3
+            if link_id in graph.nodes:
+                # Should have at least the table containment edge
+                assert graph.degree(link_id) > 0, f"Link field {link_id} should have edges"

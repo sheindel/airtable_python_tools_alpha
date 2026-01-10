@@ -380,6 +380,45 @@ Coverage is configured in [pytest.ini](pytest.ini):
 8. **Test imports**: Tests fail with import errors if `sys.path.insert(0, "web")` is missing
 9. **PyScript mocking in tests**: Must mock pyscript module before importing web modules (done in conftest.py)
 10. **Dark mode text colors**: Always include dark mode text color classes (see "Code Display Components" section below)
+11. **Import verification**: ALWAYS verify function names exist in source modules before importing (use grep_search on the source file)
+
+## Web Development Checklist
+
+When adding a new web tab or feature, follow this checklist:
+
+1. ✅ **Verify Imports First**
+   - Use `grep_search` to find actual function names in source modules
+   - Check function signatures match your usage
+   - Common mistake: Assuming function names without checking
+
+2. ✅ **Create Tab Module** (`web/tabs/your_tab.py`)
+   - Add `sys.path.append("web")` at top
+   - Export functions to `window` in `initialize()`
+   - Verify ALL imported functions actually exist
+
+3. ✅ **Update HTML** (`web/index.html`)
+   - Add option to mobile dropdown (`<select id="mobile-tab-selector">`)
+   - Add tab button to desktop navigation
+   - Add tab content section with matching `id="your-tab-tab"`
+
+4. ✅ **Update Main** (`web/main.py`)
+   - Import tab module in imports section
+   - Call `your_tab.initialize()` in `initialize_tabs()`
+
+5. ✅ **Update Script** (`web/script.js`)
+   - Add dropdown wiring in `wireDropdowns()` if needed
+   - Add dropdown population in table options if needed
+   - Add tab-specific initialization to `tab-change` event listener if needed
+
+6. ✅ **Update Config** (`web/pyscript.toml`)
+   - Add tab file: `"./tabs/your_tab.py" = "tabs/your_tab.py"`
+   - Add any new dependencies in `[files]` section
+
+7. ✅ **Build & Test**
+   - Run `npm run build:css` to rebuild Tailwind
+   - Refresh browser to see changes
+   - Check browser console for Python import errors
+   - Test all tab functionality
 
 ## External Dependencies
 

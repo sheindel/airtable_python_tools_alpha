@@ -44,7 +44,7 @@ FUNCTION_MAPPINGS = {
     "MAX": ("GREATEST", None, None),
     
     # Logical functions
-    "IF": ("CASE", 3, lambda args: f"CASE WHEN {args[0]} THEN {args[1]} ELSE {args[2]} END"),
+    "IF": ("CASE", 3, lambda args: f"CASE WHEN {_convert_truthiness_check(args[0])} THEN {args[1]} ELSE {args[2]} END"),
     "AND": ("", None, lambda args: f"({' AND '.join(args)})"),
     "OR": ("", None, lambda args: f"({' OR '.join(args)})"),
     "NOT": ("NOT", 1, None),
@@ -138,7 +138,7 @@ def convert_airtable_formula_to_sql(
         ...     "IF({fld123} > 10, \"High\", \"Low\")",
         ...     {"fld123": "amount"}
         ... )
-        'CASE WHEN amount > 10 THEN \\'High\\' ELSE \\'Low\\' END'
+        "CASE WHEN amount > 10 THEN 'High' ELSE 'Low' END"
     """
     # Recursion depth check (protection for future recursive formula expansion)
     if _depth > _max_depth:
@@ -154,8 +154,11 @@ def convert_airtable_formula_to_sql(
         # Convert functions
         sql = _convert_functions(sql)
         
-        # Convert operators
-        sql = _convert_operators(sql)
+        # Convert operators (pass field_type_map for array handling)
+        sql = _convert_operators(sql, field_type_map)
+        
+        # Convert double-quoted string literals to single quotes for PostgreSQL
+        sql = _convert_string_literals(sql)
         
         # Convert boolean literals
         sql = sql.replace("TRUE", "true").replace("FALSE", "false")
@@ -189,6 +192,33 @@ def _replace_field_references(formula: str, field_name_map: Dict[str, str]) -> s
     
     # Match field references: {fldXXXXXXXXXXXXXX}
     return re.sub(r'\{(fld[a-zA-Z0-9]+)\}', replace_field, formula)
+
+
+def _convert_truthiness_check(condition: str) -> str:
+    """Convert a simple field reference to a proper SQL boolean condition.
+    
+    In Airtable, you can use IF(field, ...) where field is any type.
+    In SQL, CASE WHEN requires explicit boolean conditions.
+    This converts a field name to a proper NULL/empty check.
+    
+    Args:
+        condition: The condition expression (may be a simple field name)
+        
+    Returns:
+        A proper boolean SQL expression
+    """
+    # Strip whitespace
+    condition = condition.strip()
+    
+    # Check if it's a simple field reference (alphanumeric/underscore only, no operators)
+    # This catches converted field names like "company_type_dm_link"
+    if re.match(r'^[a-z_][a-z0-9_]*$', condition, re.IGNORECASE):
+        # It's a simple field reference - convert to explicit NULL/empty check
+        # This works for TEXT and most scalar types
+        return f"({condition} IS NOT NULL AND {condition} != '')"
+    
+    # Otherwise assume it's already a boolean expression
+    return condition
 
 
 def _convert_functions(formula: str) -> str:
@@ -322,11 +352,12 @@ def _parse_function_args(args_str: str) -> list:
     return args
 
 
-def _convert_operators(formula: str) -> str:
+def _convert_operators(formula: str, field_type_map: Optional[Dict[str, str]] = None) -> str:
     """Convert Airtable operators to PostgreSQL equivalents.
     
     Args:
         formula: The formula string
+        field_type_map: Mapping of field names to PostgreSQL types (optional)
         
     Returns:
         Formula with operators converted
@@ -363,6 +394,133 @@ def _convert_operators(formula: str) -> str:
             # Check if it's the concatenation operator
             # (not part of a string literal)
             result.append('||')
+            i += 1
+            continue
+        
+        result.append(char)
+        i += 1
+    
+    formula_str = ''.join(result)
+    
+    # Convert =NULL and !=NULL to IS NULL and IS NOT NULL
+    # This handles Airtable's NULL comparison which doesn't work in SQL
+    formula_str = re.sub(r'\s*=\s*NULL\b', ' IS NULL', formula_str, flags=re.IGNORECASE)
+    formula_str = re.sub(r'\s*!=\s*NULL\b', ' IS NOT NULL', formula_str, flags=re.IGNORECASE)
+    formula_str = re.sub(r'\s*<>\s*NULL\b', ' IS NOT NULL', formula_str, flags=re.IGNORECASE)
+    
+    # Fix array concatenation with string delimiters (e.g., array1||','||array2)
+    # This pattern fails in PostgreSQL because ',' is interpreted as a malformed array literal
+    # We need to detect this pattern and convert it properly
+    formula_str = _fix_array_concatenation_with_delimiters(formula_str, field_type_map)
+    
+    return formula_str
+
+
+def _fix_array_concatenation_with_delimiters(formula: str, field_type_map: Optional[Dict[str, str]] = None) -> str:
+    """Fix array concatenation with string delimiters pattern.
+    
+    Airtable allows: array1 & "," & array2 & "," & array3
+    After operator conversion this becomes: array1||","||array2||","||array3
+    (Note: still double-quoted at this stage, single quote conversion happens later)
+    
+    In PostgreSQL, this fails because "," will become ',' and is interpreted as a malformed array literal.
+    
+    If field_type_map indicates these are arrays, we need to convert to:
+    array_to_string(array1 || array2 || array3, ",")
+    
+    Args:
+        formula: The SQL formula string with || operators
+        field_type_map: Mapping of field names to PostgreSQL types
+        
+    Returns:
+        Fixed formula
+    """
+    # Pattern: Look for sequences like: field1||"delim"||field2||"delim"||field3
+    # where fields are array types (end with [])
+    # Note: At this stage, string literals still use double quotes (before _convert_string_literals)
+    
+    # Pattern: multiple ||"str"|| sequences
+    # This suggests someone is trying to join with a delimiter
+    delimiter_pattern = r'\|\|"([^"]+)"\|\|'
+    
+    # Check if formula has multiple delimiter patterns
+    delimiter_matches = list(re.finditer(delimiter_pattern, formula))
+    
+    if len(delimiter_matches) >= 2:
+        # Likely array concatenation with delimiters
+        # Extract the delimiter (should be consistent)
+        delimiters = [m.group(1) for m in delimiter_matches]
+        
+        # Check if delimiters are consistent
+        if len(set(delimiters)) == 1:
+            delimiter = delimiters[0]
+            
+            # Remove all ||"delimiter"|| patterns to get clean array concatenation
+            # This converts: array1||","||array2||","||array3
+            # To: array1||array2||array3
+            clean_formula = re.sub(delimiter_pattern, '||', formula)
+            
+            # Wrap in array_to_string
+            # Note: This assumes the result should be TEXT not TEXT[]
+            # Keep delimiter in double quotes - it will be converted to single quotes later
+            return f'array_to_string({clean_formula}, "{delimiter}")'
+    
+    return formula
+
+
+def _convert_string_literals(formula: str) -> str:
+    """Convert double-quoted string literals to single quotes for PostgreSQL.
+    
+    PostgreSQL uses single quotes for string literals, while Airtable uses double quotes.
+    This function converts all double-quoted strings to single-quoted strings.
+    
+    Args:
+        formula: The formula string with double-quoted literals
+        
+    Returns:
+        Formula with single-quoted string literals
+    """
+    result = []
+    in_string = False
+    escape_next = False
+    
+    i = 0
+    while i < len(formula):
+        char = formula[i]
+        
+        if escape_next:
+            # Keep escaped characters as-is but handle quote escaping differently
+            if in_string:
+                # Inside a string - escape single quotes for PostgreSQL
+                if char == "'":
+                    result.append("''")
+                elif char == '"':
+                    # Escaped double quote inside double-quoted string becomes just the quote
+                    result.append(char)
+                else:
+                    result.append(char)
+            else:
+                result.append(char)
+            escape_next = False
+            i += 1
+            continue
+        
+        if char == '\\':
+            escape_next = True
+            # Don't append backslash yet, handle in next iteration
+            i += 1
+            continue
+        
+        if char == '"':
+            # Convert double quotes to single quotes
+            result.append("'")
+            in_string = not in_string
+            i += 1
+            continue
+        
+        if in_string and char == "'":
+            # Escape single quotes inside strings for PostgreSQL
+            result.append("''")
             i += 1
             continue
         
@@ -438,11 +596,17 @@ UNSUPPORTED_FUNCTIONS = {
 }
 
 
-def is_formula_convertible(formula: str) -> bool:
+def is_formula_convertible(
+    formula: str,
+    field_name_map: Optional[Dict[str, str]] = None,
+    field_type_map: Optional[Dict[str, str]] = None
+) -> bool:
     """Check if a formula can be reasonably converted to SQL.
     
     Args:
         formula: The Airtable formula string
+        field_name_map: Optional mapping of field IDs to column names
+        field_type_map: Optional mapping of column names to PostgreSQL types
         
     Returns:
         True if the formula appears convertible, False otherwise
@@ -451,6 +615,19 @@ def is_formula_convertible(formula: str) -> bool:
     for func in UNSUPPORTED_FUNCTIONS:
         if re.search(rf'\b{func}\s*\(', formula, re.IGNORECASE):
             return False
+    
+    # Check if formula references array fields (array operations are not immutable in PostgreSQL)
+    if field_name_map and field_type_map:
+        # Find all field references in the formula
+        field_refs = re.findall(r'\{([^}]+)\}', formula)
+        for field_ref in field_refs:
+            # Map field ID to column name
+            column_name = field_name_map.get(field_ref)
+            if column_name and column_name in field_type_map:
+                col_type = field_type_map[column_name]
+                # If it's an array type, the formula is not convertible
+                if col_type and col_type.endswith('[]'):
+                    return False
     
     # Check for record link references (can't be resolved in SQL)
     # These typically appear in formulas but reference linked records

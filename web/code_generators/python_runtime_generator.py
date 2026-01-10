@@ -106,13 +106,14 @@ class PythonFormulaTranspiler:
         
         Returns code like:
         - dataclass: record.customer_name
-        - dict: record["customer_name"]
+        - dict: record.get("customer_name") (with None default to avoid KeyError)
         - orm: record.customer_name
         """
         field_name = self._sanitize_field_name(node.field_name)
         
         if self.data_access_mode == "dict":
-            return f'record["{field_name}"]'
+            # Use .get() to avoid KeyError for missing fields
+            return f'record.get("{field_name}")'
         else:  # dataclass or orm
             return f"record.{field_name}"
     
@@ -430,10 +431,32 @@ class PythonFormulaTranspiler:
         # Handle string concatenation (&)
         if node.operator == '&':
             # Convert to strings before concatenation
-            left = f"str({left}) if {left} is not None else ''"
-            right = f"str({right}) if {right} is not None else ''"
+            # Only wrap with null checks if the operand needs it
+            left = self._ensure_string(left, node.left)
+            right = self._ensure_string(right, node.right)
         
         return f"({left} {op} {right})"
+    
+    def _ensure_string(self, transpiled_code: str, original_node: FormulaNode) -> str:
+        """
+        Ensure a value is converted to string for concatenation.
+        
+        Only wraps with null checks if the node type requires it.
+        Literals are wrapped with str() for type consistency.
+        """
+        # Literals are never None and can be converted directly with str()
+        if isinstance(original_node, LiteralNode):
+            # Wrap all literals with str() for consistency
+            return f"str({transpiled_code})"
+        
+        # Binary ops with & are already wrapped - don't double-wrap
+        elif isinstance(original_node, BinaryOpNode) and original_node.operator == '&':
+            # Already returns a string from concatenation
+            return transpiled_code
+        
+        # Field references and function calls need null safety
+        else:
+            return f"(str({transpiled_code}) if {transpiled_code} is not None else '')"
     
     def _transpile_unary_op(self, node: UnaryOpNode) -> str:
         """Transpile unary operations."""

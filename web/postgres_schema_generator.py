@@ -222,6 +222,14 @@ def generate_create_table_statement(
     # Build field name map for formula conversion
     field_name_map = build_field_name_map(table, naming_mode)
     
+    # Build field type map (column name -> postgres type)
+    field_type_map = {}
+    for field in table["fields"]:
+        if should_include_field(field, included_field_types):
+            column_name = get_column_name(field, naming_mode)
+            postgres_type = get_postgres_type_for_field(field)
+            field_type_map[column_name] = postgres_type
+    
     # Process each field
     for field in table["fields"]:
         if not should_include_field(field, included_field_types):
@@ -240,11 +248,11 @@ def generate_create_table_statement(
                     # No formula, skip this field
                     continue
                 
-                # Check if the formula is convertible
-                if not is_formula_convertible(formula):
+                # Check if the formula is convertible (pass field maps for array checking)
+                if not is_formula_convertible(formula, field_name_map, field_type_map):
                     # Add as comment if not convertible
                     generated_columns.append(
-                        f"    -- {column_name}: Formula not convertible (unsupported functions)"
+                        f"    -- {column_name}: Formula not convertible (unsupported functions or array dependencies)"
                     )
                     continue
                 
@@ -256,7 +264,8 @@ def generate_create_table_statement(
                     column_name,
                     formula,
                     field_name_map,
-                    postgres_type
+                    postgres_type,
+                    field_type_map
                 )
                 
                 # Add to generated columns list (these go after regular columns)
@@ -294,7 +303,9 @@ def generate_create_table_statement(
     # Add generated columns at the end
     all_columns = columns + generated_columns
     
-    # Build CREATE TABLE statement
+    # Filter out any empty strings and build CREATE TABLE statement
+    # This ensures no trailing commas in the generated SQL
+    all_columns = [col for col in all_columns if col.strip()]
     columns_sql = ",\n".join(all_columns)
     sql = f"CREATE TABLE {table_name} (\n{columns_sql}\n);"
     

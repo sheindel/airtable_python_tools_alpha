@@ -101,9 +101,22 @@ def load_field_dependencies():
         # Get output format setting
         output_format = output_format_select.value if output_format_select else "field_names"
         
-        # Use selectedId to get the actual IDs instead of display text
-        table_id = table_dropdown.selectedId
-        field_id = field_dropdown.selectedId
+        # Try to access selectedId properties
+        # In PyScript, JavaScript getters may require special handling
+        try:
+            table_id = table_dropdown.selectedId
+            field_id = field_dropdown.selectedId
+        except (AttributeError, TypeError) as e:
+            print(f"Error accessing selectedId: {e}")
+            # Fallback: try to access internal _selected property
+            try:
+                table_selected = table_dropdown._selected
+                field_selected = field_dropdown._selected
+                table_id = table_selected.id if table_selected else None
+                field_id = field_selected.id if field_selected else None
+            except:
+                table_id = None
+                field_id = None
         
         print(f"Loading dependencies for table={table_id}, field={field_id}")
         

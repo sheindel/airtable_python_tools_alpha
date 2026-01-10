@@ -60,7 +60,8 @@ class TestPythonFormulaTranspiler:
         transpiler = PythonFormulaTranspiler(data_access_mode="dict")
         node = FieldReferenceNode("fld123", "Customer Name", "singleLineText")
         result = transpiler.transpile(node)
-        assert result == 'record["customer_name"]'
+        # Dict mode uses .get() to avoid KeyError for missing fields
+        assert result == 'record.get("customer_name")'
     
     def test_transpile_binary_op_addition(self):
         """Test transpiling addition operation."""
@@ -660,8 +661,8 @@ class TestGeneratePythonLibrary:
         
         result = generate_python_library(metadata, {"data_access_mode": "dict"})
         
-        # Should use dict-style field access
-        assert 'record["amount"]' in result
+        # Should use dict-style field access with .get() to avoid KeyError
+        assert 'record.get("amount")' in result
     
     def test_generate_library_no_types(self):
         """Test generating library without type definitions."""

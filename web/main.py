@@ -23,7 +23,8 @@ from tabs import (
     formula_evaluator, 
     postgres_schema, 
     types_generator,
-    code_generator
+    code_generator,
+    evaluator_generator
 )
 
 # Store current active tab
@@ -44,7 +45,8 @@ def initialize_tabs():
     formula_evaluator.initialize()
     postgres_schema.initialize()
     types_generator.initialize()
-    code_generator.initialize()  # NEW: Initialize code generator tab
+    code_generator.initialize()
+    evaluator_generator.initialize()  # NEW: Initialize evaluator generator tab
     
     print("All tabs initialized")
 

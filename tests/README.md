@@ -4,8 +4,9 @@ This directory contains unit tests for the core Python business logic.
 
 ## Running Tests
 
+### Unit Tests (Fast, Default)
 ```bash
-# Run all tests
+# Run all unit tests
 uv run pytest
 
 # Run with coverage
@@ -26,6 +27,26 @@ uv run pytest tests/test_performance_benchmarks.py -v -s
 # Run benchmarks with external schema
 BENCHMARK_SCHEMA=/path/to/schema.json uv run pytest tests/test_performance_benchmarks.py -v
 ```
+
+### Integration Tests (Real Airtable Data)
+```bash
+# Set up credentials first
+export AIRTABLE_BASE_ID=appXXXXXXXXXXXXXX
+export AIRTABLE_API_KEY=keyXXXXXXXXXXXXXX
+
+# Run ALL tests including integration tests
+uv run pytest --airtable-live
+
+# Run only integration tests
+uv run pytest -m airtable_live --airtable-live -v
+
+# Run specific integration test class
+uv run pytest tests/test_complexity_scorecard.py::TestComplexityScorecardIntegration --airtable-live -v
+```
+
+**Note**: Integration tests are skipped by default. Use `--airtable-live` to enable them.
+
+See [Integration Testing Guide](../docs/integration-testing-guide.md) for comprehensive documentation.
 
 ## Performance Benchmarks
 
@@ -55,14 +76,28 @@ See [test_performance_benchmarks.py](test_performance_benchmarks.py) for details
 
 ## Test Organization
 
-- `conftest.py` - Shared fixtures and test utilities
+### Core Test Files
+- `conftest.py` - Shared fixtures, pytest configuration, and Airtable API fixtures
 - `schema_loader.py` - Utilities for loading test schemas (supports external schemas)
-- `test_at_metadata_graph.py` - Tests for graph construction and traversal
-- `test_constants.py` - Tests for shared constants
+- `test_at_metadata_graph.py` - Graph construction and traversal (+ integration tests)
+- `test_complexity_scorecard.py` - Complexity scoring (+ integration tests)
+- `test_formula_compressor.py` - Formula compression (+ integration tests)
+- `test_dependency_mapper.py` - Dependency mapping (+ integration tests)
+- `test_mermaid_generator.py` - Mermaid diagram generation (+ integration tests)
+- `test_unused_fields.py` - Unused field detection (+ integration tests)
+- `test_constants.py` - Shared constants validation
+- `test_error_handling.py` - Error handling utilities
 - `test_performance_benchmarks.py` - Performance benchmarks for code generators
-- `test_error_handling.py` - Tests for error handling utilities (TODO)
-- `test_formula_compressor.py` - Tests for formula compression (TODO)
+- `test_formula_parity.py` - Formula evaluation parity tests (Phase 5B)
+
+### Helper Modules
+- `helpers/airtable_api.py` - Airtable API utilities (schema fetching, caching)
+- `helpers/comparison.py` - Value comparison utilities for parity testing
+- `helpers/__init__.py` - Helper module initialization
+
+### Test Data
 - `schemas/` - Directory for external test schemas (gitignored)
+- `.cache/airtable_schemas/` - Cached schemas from API (24hr expiry)
 
 ### External Test Schemas
 

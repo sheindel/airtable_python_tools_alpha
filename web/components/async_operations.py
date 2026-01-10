@@ -3,6 +3,7 @@
 Provides wrappers and decorators for showing loading states during operations.
 """
 
+from pyodide.ffi import create_once_callable
 import sys
 sys.path.append("web")
 
@@ -227,4 +228,4 @@ def defer_execution(func: Callable, delay_ms: int = 100) -> None:
         except Exception as e:
             print(f"Error in deferred execution: {e}")
     
-    js.setTimeout(wrapper, delay_ms)
+    js.setTimeout(create_once_callable(wrapper), delay_ms)

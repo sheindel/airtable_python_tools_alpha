@@ -9,6 +9,7 @@ This module provides a single interface for generating various types of code fro
 """
 
 from pyscript import document, window
+from pyodide.ffi import create_proxy, create_once_callable
 import sys
 import json
 
@@ -29,11 +30,11 @@ def initialize():
     """Initialize the code generator tab"""
     print("Initializing Code Generator tab...")
     
-    # Export functions to JavaScript
-    window.generateCodeFromWorkflow = generate_code_from_workflow
-    window.updateWorkflowOptions = update_workflow_options
-    window.downloadGeneratedFile = download_generated_file
-    window.downloadAllFiles = download_all_files
+    # Export functions to JavaScript using create_proxy
+    window.generateCodeFromWorkflow = create_proxy(generate_code_from_workflow)
+    window.updateWorkflowOptions = create_proxy(update_workflow_options)
+    window.downloadGeneratedFile = create_proxy(download_generated_file)
+    window.downloadAllFiles = create_proxy(download_all_files)
     
     # Setup workflow selector event listeners
     setup_workflow_selector()
@@ -76,7 +77,7 @@ def setup_workflow_selector():
             <h3 class="font-bold text-lg mb-1 dark:text-white">Database Schema</h3>
             <p class="text-sm text-gray-600 dark:text-gray-400">PostgreSQL schema with tables, columns, and formula logic</p>
             <div class="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                Generates: schema.sql, functions.sql, views.sql
+                Generates: schema.sql, functions_and_views.sql
             </div>
         </div>
         
@@ -93,8 +94,8 @@ def setup_workflow_selector():
     """
     workflow_selector.innerHTML = workflow_options_html
     
-    # Export select function
-    window.selectWorkflow = select_workflow
+    # Export select function using create_proxy
+    window.selectWorkflow = create_proxy(select_workflow)
 
 
 def select_workflow(workflow_id):
@@ -355,7 +356,7 @@ def generate_code_from_workflow():
                 
                 # Small delay to show completion state
                 import js
-                js.setTimeout(lambda: display_generated_files(generated_files), 500)
+                js.setTimeout(create_once_callable(lambda: display_generated_files(generated_files)), 500)
                 
                 print(f"Generated {len(generated_files)} files using {workflow_id} workflow")
                 
@@ -484,7 +485,11 @@ def display_generated_files(files):
         return
     
     # Store files in global state for download
-    window.generatedFiles = files
+    # Convert Python dict to JS object
+    import js
+    window.generatedFiles = js.Object.fromEntries(
+        js.Object.entries(files)
+    )
     
     # Build file tree HTML
     html = '<div class="generated-files-container mt-6">'
@@ -578,7 +583,7 @@ def toggle_file_preview(filename):
             preview.classList.add("hidden")
 
 
-window.toggleFilePreview = toggle_file_preview
+window.toggleFilePreview = create_proxy(toggle_file_preview)
 
 
 def download_generated_file(filename):
@@ -622,6 +627,6 @@ def download_all_files():
     
     for filename, content in files.items():
         # Small delay between downloads to avoid browser blocking
-        js.setTimeout(lambda f=filename: download_generated_file(f), 100)
+        js.setTimeout(create_once_callable(lambda f=filename: download_generated_file(f)), 100)
     
     print(f"Downloading {len(files)} files...")

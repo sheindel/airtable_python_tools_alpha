@@ -256,11 +256,11 @@ def get_complexity_summary() -> str:
     
     if not all_complexity:
         return json.dumps({
-            "total_computed_fields": 0,
-            "avg_complexity_score": 0,
-            "max_complexity_score": 0,
+            "total_fields": 0,
+            "average_complexity": 0,
+            "max_complexity": 0,
             "top_5_fields": [],
-            "tables_by_complexity": {}
+            "by_table": {}
         })
     
     # Calculate statistics
@@ -290,11 +290,11 @@ def get_complexity_summary() -> str:
         tables_complexity[table_name]["avg_score"] = round(total / count, 1) if count > 0 else 0
     
     return json.dumps({
-        "total_computed_fields": len(all_complexity),
-        "avg_complexity_score": round(sum(scores) / len(scores), 1),
-        "max_complexity_score": max(scores),
+        "total_fields": len(all_complexity),
+        "average_complexity": round(sum(scores) / len(scores), 1),
+        "max_complexity": max(scores),
         "top_5_fields": all_complexity[:5],
-        "tables_by_complexity": tables_complexity
+        "by_table": tables_complexity
     })
 
 
@@ -345,7 +345,7 @@ def export_complexity_to_csv() -> str:
         return "No data available"
     
     # CSV header
-    lines = ["Table,Field,Type,Score,Depth,Backward Deps,Forward Deps,Cross-Table Deps,Formula Refs,Rollup Refs,Lookup Refs"]
+    lines = ["table_name,field_name,type,score,depth,backward_deps,forward_deps,cross_table_deps,formula_refs,rollup_refs,lookup_refs"]
     
     for field in all_complexity:
         rel_counts = field.get("relationship_counts", {})

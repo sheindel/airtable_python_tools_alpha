@@ -195,6 +195,7 @@ function wireDropdowns() {
     const grapherFieldDropdown = getDropdown("grapher-field-dropdown");
     const evalTableDropdown = getDropdown("eval-table-dropdown");
     const evalFieldDropdown = getDropdown("eval-field-dropdown");
+    const evaluatorTableDropdown = getDropdown("evaluator-table-dropdown");
 
     if (tableDropdown) {
         tableDropdown.addEventListener('select', (event) => {
@@ -275,6 +276,15 @@ function wireDropdowns() {
                 } catch (error) {
                     console.error('Error calling loadFieldDependencies:', error);
                 }
+            }
+        });
+    }
+
+    // Evaluator Generator tab dropdown (table selection only)
+    if (evaluatorTableDropdown) {
+        evaluatorTableDropdown.addEventListener('select', (event) => {
+            if (event.detail && event.detail.id) {
+                console.log('Evaluator table selected:', event.detail.text);
             }
         });
     }
@@ -366,6 +376,7 @@ function updateSchemaInfo() {
     tableOptions.sort((a, b) => a.text.localeCompare(b.text));
     setDropdownOptions("table-dropdown", tableOptions);
     setDropdownOptions("eval-table-dropdown", tableOptions);
+    setDropdownOptions("evaluator-table-dropdown", tableOptions);
     initializeCompressorDropdowns();
     initializeGrapherDropdowns();
     

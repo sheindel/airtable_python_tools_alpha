@@ -251,19 +251,19 @@ def test_generate_python_types_dataclass():
     # Check for class definition with sanitized name
     assert "class Products:" in result
     
-    # Check for required field
-    assert "Product_Name: str" in result
+    # Check for required field (in snake_case for dataclasses)
+    assert "product_name: str" in result
     
-    # Check for optional field
-    assert "Price: Optional[float] = None" in result
+    # Check for optional field (in snake_case for dataclasses)
+    assert "price: Optional[float] = None" in result
     
-    # Check for field ID mapping
+    # Check for field ID mapping (uses snake_case for dataclasses)
     assert "Products_FIELD_ID_MAPPING = {" in result
-    assert "'Product_Name': 'fldName'," in result
+    assert "'product_name': 'fldName'," in result
     
-    # Check for reverse mapping
+    # Check for reverse mapping (uses snake_case for dataclasses)
     assert "Products_FIELD_NAME_MAPPING = {" in result
-    assert "'fldName': 'Product_Name'," in result
+    assert "'fldName': 'product_name'," in result
 
 
 def test_generate_python_types_typeddict():

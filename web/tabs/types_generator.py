@@ -1,6 +1,7 @@
 """Types Generator Tab - Generate TypeScript or Python type definitions"""
 
 from pyscript import document, window
+from pyodide.ffi import create_once_callable
 import sys
 sys.path.append("web")
 
@@ -208,7 +209,7 @@ def copy_to_clipboard(content: str, button_id: str):
                     copy_btn.classList.remove("bg-green-600")
                     copy_btn.classList.add("bg-primary-600")
             
-            window.setTimeout(reset_button, 2000)
+            window.setTimeout(create_once_callable(reset_button), 2000)
             
     except Exception as e:
         print(f"Error copying to clipboard: {e}")

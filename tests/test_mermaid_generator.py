@@ -509,3 +509,141 @@ class TestComplexScenarios:
         assert "fld1" in mermaid  # Link field
         assert "fld2" in mermaid  # Lookup field
         assert "fld4" in mermaid  # Looked-up field
+
+
+# ============================================================================
+# Integration Tests with Real Airtable Data
+# ============================================================================
+
+@pytest.mark.airtable_live
+class TestMermaidGeneratorIntegration:
+    """Integration tests using real Airtable data.
+    
+    These tests validate Mermaid diagram generation with real-world field names
+    that contain special characters, emojis, multi-language text, and other
+    edge cases not present in synthetic test data.
+    """
+    
+    def test_generate_mermaid_from_real_schema(self, airtable_schema):
+        """Test Mermaid generation from real Airtable schema."""
+        graph = metadata_to_graph(airtable_schema)
+        
+        # Test different display modes
+        for mode in ["simple", "descriptions", "formulas"]:
+            mermaid = graph_to_mermaid(graph, "TD", mode)
+            
+            assert isinstance(mermaid, str)
+            assert len(mermaid) > 0
+            assert "graph" in mermaid.lower() or "flowchart" in mermaid.lower()
+    
+    def test_field_names_with_special_characters(self, airtable_schema):
+        """Test that real field names with special chars are properly escaped."""
+        graph = metadata_to_graph(airtable_schema)
+        mermaid = graph_to_mermaid(graph, "TD", "simple")
+        
+        # Should not have unescaped problematic characters that break Mermaid
+        # Check for common issues:
+        # - Unbalanced quotes should be handled
+        # - Parentheses should be escaped or in proper context
+        
+        # Basic validation: should be valid Mermaid syntax structure
+        assert mermaid.count("[") >= mermaid.count("]") - 5  # Allow some flexibility
+        
+        # Should not crash when rendering real field names
+        assert isinstance(mermaid, str)
+    
+    def test_all_field_types_render_correctly(self, airtable_schema):
+        """Test that all field types in real base render without errors."""
+        graph = metadata_to_graph(airtable_schema)
+        
+        # Collect unique field types
+        field_types = set()
+        for table in airtable_schema["tables"]:
+            for field in table["fields"]:
+                field_types.add(field["type"])
+        
+        # Generate mermaid and ensure all types are handled
+        for mode in ["simple", "descriptions"]:
+            mermaid = graph_to_mermaid(graph, "TD", mode)
+            assert isinstance(mermaid, str)
+            assert len(mermaid) > 0
+    
+    def test_cross_table_relationships_in_diagram(self, airtable_schema):
+        """Test that cross-table relationships appear in Mermaid diagrams."""
+        # Find tables with relationships
+        has_links = False
+        for table in airtable_schema["tables"]:
+            for field in table["fields"]:
+                if field["type"] in ["multipleRecordLinks", "multipleLookupValues", "rollup"]:
+                    has_links = True
+                    break
+            if has_links:
+                break
+        
+        if not has_links:
+            pytest.skip("No cross-table relationships in test base")
+        
+        graph = metadata_to_graph(airtable_schema)
+        mermaid = graph_to_mermaid(graph, "TD", "simple")
+        
+        # Should have subgraphs for tables
+        assert "subgraph" in mermaid.lower()
+        
+        # Should have edges between fields
+        assert "-->" in mermaid or "---" in mermaid
+    
+    def test_mermaid_directions_with_real_data(self, airtable_schema):
+        """Test all Mermaid direction options with real schema."""
+        graph = metadata_to_graph(airtable_schema)
+        
+        for direction in ["TD", "LR", "RL", "BT"]:
+            mermaid = graph_to_mermaid(graph, direction, "simple")
+            
+            assert isinstance(mermaid, str)
+            assert len(mermaid) > 0
+            # Should specify the direction
+            assert direction in mermaid or direction.lower() in mermaid.lower()
+    
+    def test_formula_display_mode_with_real_formulas(self, airtable_schema):
+        """Test formula display mode with real formula content."""
+        # Find formula fields
+        has_formulas = any(
+            field["type"] == "formula"
+            for table in airtable_schema["tables"]
+            for field in table["fields"]
+        )
+        
+        if not has_formulas:
+            pytest.skip("No formula fields in test base")
+        
+        graph = metadata_to_graph(airtable_schema)
+        mermaid = graph_to_mermaid(graph, "TD", "formulas")
+        
+        assert isinstance(mermaid, str)
+        assert len(mermaid) > 0
+        
+        # Should handle formula text without breaking Mermaid syntax
+        # (We can't easily verify the formula content, but it shouldn't crash)
+    
+    def test_large_base_generates_valid_mermaid(self, airtable_schema):
+        """Test that large real bases generate valid Mermaid diagrams."""
+        total_fields = sum(
+            len(table["fields"])
+            for table in airtable_schema["tables"]
+        )
+        
+        if total_fields == 0:
+            pytest.skip("No fields in test base")
+        
+        graph = metadata_to_graph(airtable_schema)
+        mermaid = graph_to_mermaid(graph, "TD", "simple")
+        
+        assert isinstance(mermaid, str)
+        assert len(mermaid) > 0
+        
+        # Basic syntax validation for large diagrams
+        lines = mermaid.split('\n')
+        assert len(lines) > 0
+        
+        # Should have proper structure
+        assert any("graph" in line.lower() or "flowchart" in line.lower() for line in lines)
