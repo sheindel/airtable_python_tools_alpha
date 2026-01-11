@@ -89,6 +89,8 @@ See [test_performance_benchmarks.py](test_performance_benchmarks.py) for details
 - `test_error_handling.py` - Error handling utilities
 - `test_performance_benchmarks.py` - Performance benchmarks for code generators
 - `test_formula_parity.py` - Formula evaluation parity tests (Phase 5B)
+- `test_integration_parity.py` - **NEW**: Integration tests verifying evaluator accuracy against live Airtable data
+- `test_airtable_formula_to_sql.py` - SQL conversion including truthiness and NULL handling
 
 ### Helper Modules
 - `helpers/airtable_api.py` - Airtable API utilities (schema fetching, caching)
@@ -137,27 +139,17 @@ def test_something(sample_metadata):
 - Graph operations: 90%+ coverage
 - Error handling: 70%+ coverage
 
-## Future Tests Needed
+## Debug Tools
 
-1. **Formula Compression**
-   - Test recursive expansion
-   - Test circular dependency detection
-   - Test max depth limiting
+For ad-hoc debugging and inspection, see [../scripts/debug/README.md](../scripts/debug/README.md):
 
-2. **Error Handling**
-   - Test all custom exceptions
-   - Test error display formatting
-   - Test validation functions
+- `inspect_ast.py` - View formula AST structure
+- `inspect_graph.py` - View computation graph
+- `inspect_evaluator.py` - Generate and view evaluator code
+- `inspect_transpiler.py` - View transpiler output
+- `inspect_formula.py` - Debug specific formula fields
 
-3. **Mermaid Generation**
-   - Test diagram generation
-   - Test different display modes
-   - Test field ID to name conversion
-
-4. **Formula Evaluator**
-   - Test expression evaluation
-   - Test field substitution
-   - Test error cases
+These tools complement the automated test suite by enabling interactive debugging.
 
 ## CI/CD Integration
 

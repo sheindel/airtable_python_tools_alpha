@@ -106,6 +106,117 @@ def initialize():
 - Use `window.functionName` pattern to call Python from JavaScript
 - Store/retrieve data via `localStorage` (see [web/components/airtable_client.py](web/components/airtable_client.py))
 
+### Chrome MCP Debugging
+The Chrome DevTools MCP provides programmatic browser automation and debugging capabilities for the web app running at `http://localhost:8008`.
+
+**Starting the App for Debugging**:
+```bash
+npm run dev  # Starts dev server at localhost:8008
+```
+
+**Core Debugging Capabilities**:
+
+1. **Visual Inspection**
+   - `take_screenshot()`: Capture current UI state (full page or specific elements)
+   - Compare before/after screenshots for regression testing
+   - Example: `take_screenshot(format="png", fullPage=true)`
+
+2. **Console Monitoring**
+   - `list_console_messages()`: View all console logs, errors, warnings
+   - Track PyScript initialization: "PyScript is ready", tab initialization logs
+   - Identify JavaScript errors and warnings
+   - Example issues to watch: form field warnings, 404s, SharedArrayBuffer restrictions
+
+3. **Network Analysis**
+   - `list_network_requests()`: Monitor all HTTP requests (96+ on initial load)
+   - Verify resource loading: PyScript core, Tailwind CSS, web components
+   - Check API calls to Airtable (when metadata is loaded)
+   - Inspect request/response bodies and timing
+
+4. **JavaScript State Inspection**
+   - `evaluate_script()`: Run JavaScript and extract state
+   - Check PyScript readiness: `typeof window.pyscript !== 'undefined'`
+   - Inspect localStorage: metadata, baseId, refresh timestamps
+   - Query DOM state: active tab, form values, rendered content
+   - Example:
+   ```javascript
+   evaluate_script(() => ({
+     pyScriptReady: typeof window.pyscript !== 'undefined',
+     metadata: localStorage.getItem('airtable_metadata'),
+     activeTab: document.querySelector('.tab-button.active')?.textContent,
+     mermaidGraphs: document.querySelectorAll('.mermaid').length
+   }))
+   ```
+
+5. **Interactive Testing**
+   - `navigate_page()`: Load the app or specific URLs
+   - `click()`: Click buttons, tabs, UI elements by selector
+   - `fill()`: Enter text into form fields (Base ID, PAT)
+   - `select_page()`: Switch between browser tabs
+   - Test complete workflows programmatically
+
+6. **Responsive Testing**
+   - `resize_page()`: Test different viewport sizes
+   - Mobile: `resize_page(375, 667)` (iPhone)
+   - Tablet: `resize_page(768, 1024)` (iPad)
+   - Desktop: `resize_page(1920, 1080)`
+
+**Debugging Workflow Example** (Troubleshooting "Dependency Mapper not showing graph"):
+```javascript
+// 1. Navigate to app
+navigate_page('http://localhost:8008')
+
+// 2. Verify metadata loaded
+evaluate_script(() => {
+  const metadata = localStorage.getItem('airtable_metadata');
+  return { hasMetadata: !!metadata, metadataSize: metadata?.length || 0 }
+})
+
+// 3. Switch to Dependency Mapper tab
+evaluate_script(() => {
+  document.querySelector('[data-tab="dependency-mapper"]')?.click();
+  return { switched: true }
+})
+
+// 4. Check if field dropdown populated
+evaluate_script(() => ({
+  fieldCount: document.querySelector('#field-select')?.options.length || 0,
+  tables: document.querySelectorAll('#table-select option').length
+}))
+
+// 5. Select a field and generate
+fill('#field-select', 'fldXXXXXXXXXXXXXX')
+click('#generate-dependency-tree')
+
+// 6. Check for errors
+list_console_messages(types=['error', 'warn'])
+
+// 7. Verify output rendered
+evaluate_script(() => ({
+  hasMermaid: !!document.querySelector('#dependency-output .mermaid'),
+  mermaidContent: document.querySelector('#dependency-output .mermaid')?.textContent?.length || 0
+}))
+
+// 8. Document results
+take_screenshot()
+```
+
+**Common Debug Patterns**:
+
+- **PyScript initialization issues**: Check console for "PyScript Ready" message, verify Python functions exported to `window`
+- **Tab not loading**: Verify tab initialized in console logs, check for import errors
+- **Form submission failing**: Monitor network requests, check localStorage updates
+- **Mermaid not rendering**: Inspect `.mermaid` element content, check for syntax errors
+- **Dark mode issues**: Verify CSS classes include `dark:` variants
+- **Performance problems**: Use `performance_analyze_insight()` to identify bottlenecks
+
+**Advantages over Manual Testing**:
+- **Reproducible**: Script exact test scenarios
+- **Automated**: Run tests on every deploy
+- **Comprehensive**: Check console, network, DOM state simultaneously
+- **Documentation**: Screenshots and logs captured automatically
+- **Fast iteration**: Test edge cases without manual clicking
+
 ## Project-Specific Conventions
 
 ### Shared Constants
@@ -542,3 +653,34 @@ Copy/action buttons use glassmorphism:
 - [web/components/](web/components/): Shared Python utilities
 - [web/modules/*.js](web/modules/): Shared JavaScript utilities
 - [web/components/ui/*.js](web/components/ui/): Web components
+
+## Documentation Structure
+
+### Root Documentation
+- [README.md](README.md) - Main project documentation, quick start, features
+- [TODO.md](TODO.md) - Active work tracking and tasks
+- [LICENSE](LICENSE) - MIT license
+
+### docs/ Directory
+- [docs/architecture.md](docs/architecture.md) - Detailed system architecture and design patterns
+- [docs/testing-guide.md](docs/testing-guide.md) - Testing strategy and procedures (formerly TESTING_README.md)
+- [docs/ai-testing-guide.md](docs/ai-testing-guide.md) - AI-assisted regression testing (formerly AI_REGRESSION_TEST.md)
+- [docs/web-testing-guide.md](docs/web-testing-guide.md) - Browser-based testing with Chrome MCP (formerly WEB_TEST_GUIDE.md)
+- [docs/integration-testing-guide.md](docs/integration-testing-guide.md) - Integration test examples
+- [docs/*.md](docs/) - Design documents, phase completion notes, performance guides
+
+### Subdirectory Documentation
+- [tests/README.md](tests/README.md) - Test suite overview and organization
+- [web/README.md](web/README.md) - Web application development guide
+- [web/TYPESCRIPT.md](web/TYPESCRIPT.md) - TypeScript compilation and development
+- [scripts/README.md](scripts/README.md) - Build and debug scripts documentation
+- [scripts/debug/README.md](scripts/debug/README.md) - Debug tools usage
+- [scripts/validate/README.md](scripts/validate/README.md) - Validation tools
+
+### Generated Outputs (gitignored)
+- `test_results/` - Test reports and outputs (gitignored directory)
+  - `test_results/test_report.md` - Generated by `run_regression_tests.py`
+  - `test_results/INTEGRATION_TEST_REPORT_*.md` - Web test results
+  - See [test_results/README.md](test_results/README.md) for details
+- `htmlcov/` - Coverage reports from pytest
+- `web/output.css` - Compiled Tailwind CSS (must build before running)

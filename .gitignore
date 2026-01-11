@@ -192,5 +192,8 @@ blog_metadata.json
 # External test schemas (not committed to repo)
 tests/schemas/*.json
 
+# Test results and reports (generated files)
+test_results/
+
 *.csv
 .~lock*
